@@ -1,0 +1,11 @@
+.git
+.gitignore
+.DS_Store
+.env
+*.md
+*.db
+*.sqlite
+node_modules
+dist
+gen
+chart

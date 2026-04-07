@@ -1,0 +1,12 @@
+apiVersion: v2
+name: inventory-management
+description: 상품 재고 관리 시스템 - SAP CAP + Fiori Elements
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - sap
+  - cap
+  - fiori
+  - inventory
+  - kubernetes

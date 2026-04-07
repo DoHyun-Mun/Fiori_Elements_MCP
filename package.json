@@ -1,0 +1,55 @@
+{
+  "name": "inventory-management",
+  "version": "1.0.0",
+  "description": "상품 재고 관리 시스템 - SAP CAP + Fiori Elements (OData V4)",
+  "repository": "<Add your repository here>",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@cap-js/sqlite": "^1",
+    "@sap/cds": "^8",
+    "@sap/xssec": "^4.13.0",
+    "express": "^4"
+  },
+  "devDependencies": {
+    "@sap/cds-dk": "^8",
+    "@sap/ux-ui5-tooling": "^1",
+    "@ui5/cli": "^3",
+    "cds-plugin-ui5": "^0.13.0"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "cds watch",
+    "build": "cds build/all",
+    "watch-categories": "cds watch --open categories/webapp/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-products": "cds watch --open products/webapp/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-inventories": "cds watch --open inventories/webapp/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-purchaseorders": "cds watch --open purchaseorders/webapp/index.html?sap-ui-xx-viewCache=false --livereload false"
+  },
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "sqlite",
+        "credentials": {
+          "database": ":memory:"
+        }
+      }
+    },
+    "[production]": {
+      "requires": {
+        "auth": {
+          "kind": "dummy"
+        }
+      }
+    }
+  },
+  "workspaces": [
+    "app/*"
+  ],
+  "sapux": [
+    "app/categories",
+    "app/products",
+    "app/inventories",
+    "app/purchaseorders"
+  ]
+}

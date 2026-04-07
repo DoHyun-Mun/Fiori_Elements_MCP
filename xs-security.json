@@ -1,0 +1,88 @@
+{
+  "xsappname": "inventory-management",
+  "tenant-mode": "dedicated",
+  "description": "상품 재고 관리 시스템 Security Configuration",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.inventory.read",
+      "description": "재고 조회 권한"
+    },
+    {
+      "name": "$XSAPPNAME.inventory.write",
+      "description": "재고 편집 권한"
+    },
+    {
+      "name": "$XSAPPNAME.purchaseorder.approve",
+      "description": "발주 승인 권한"
+    },
+    {
+      "name": "$XSAPPNAME.admin",
+      "description": "관리자 권한"
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "InventoryViewer",
+      "description": "재고 조회자",
+      "scope-references": [
+        "$XSAPPNAME.inventory.read"
+      ]
+    },
+    {
+      "name": "InventoryManager",
+      "description": "재고 관리자",
+      "scope-references": [
+        "$XSAPPNAME.inventory.read",
+        "$XSAPPNAME.inventory.write"
+      ]
+    },
+    {
+      "name": "PurchaseOrderApprover",
+      "description": "발주 승인자",
+      "scope-references": [
+        "$XSAPPNAME.inventory.read",
+        "$XSAPPNAME.purchaseorder.approve"
+      ]
+    },
+    {
+      "name": "Administrator",
+      "description": "시스템 관리자",
+      "scope-references": [
+        "$XSAPPNAME.inventory.read",
+        "$XSAPPNAME.inventory.write",
+        "$XSAPPNAME.purchaseorder.approve",
+        "$XSAPPNAME.admin"
+      ]
+    }
+  ],
+  "role-collections": [
+    {
+      "name": "InventoryViewer",
+      "description": "재고 조회 역할 컬렉션",
+      "role-template-references": [
+        "$XSAPPNAME.InventoryViewer"
+      ]
+    },
+    {
+      "name": "InventoryManager",
+      "description": "재고 관리 역할 컬렉션",
+      "role-template-references": [
+        "$XSAPPNAME.InventoryManager"
+      ]
+    },
+    {
+      "name": "PurchaseOrderApprover",
+      "description": "발주 승인 역할 컬렉션",
+      "role-template-references": [
+        "$XSAPPNAME.PurchaseOrderApprover"
+      ]
+    },
+    {
+      "name": "InventoryAdmin",
+      "description": "시스템 관리자 역할 컬렉션",
+      "role-template-references": [
+        "$XSAPPNAME.Administrator"
+      ]
+    }
+  ]
+}
