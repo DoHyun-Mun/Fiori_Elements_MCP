@@ -7,3 +7,7 @@ gen/
 dist/
 app/*/node_modules/
 app/*/dist/
+
+# Kubernetes 민감 정보
+kubeconfig*.yaml
+k8s/ias-secret.yaml

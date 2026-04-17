@@ -1,0 +1,19 @@
+{
+  "welcomeFile": "/index.html",
+  "authenticationMethod": "route",
+  "routes": [
+    {
+      "source": "^/inventory/(.*)$",
+      "target": "/inventory/$1",
+      "destination": "cap-backend",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
+      "source": "^(.*)$",
+      "target": "$1",
+      "destination": "cap-backend",
+      "authenticationType": "xsuaa"
+    }
+  ]
+}

@@ -36,6 +36,7 @@
       "db": {
         "kind": "sqlite",
         "credentials": {
+          "url": ":memory:",
           "database": ":memory:"
         }
       }

@@ -1,0 +1,18 @@
+apiVersion: gateway.kyma-project.io/v2alpha1
+kind: APIRule
+metadata:
+  name: fiori-mcp-test
+  namespace: fiori-mcp-test
+  labels:
+    app: fiori-mcp-test
+spec:
+  gateway: kyma-system/kyma-gateway
+  hosts:
+    - "fiori-mcp-test.c56380c.kyma.ondemand.com"
+  service:
+    name: approuter
+    port: 5000
+  rules:
+    - path: /*
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+      noAuth: true
