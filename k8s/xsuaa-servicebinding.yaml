@@ -1,0 +1,8 @@
+apiVersion: services.cloud.sap.com/v1
+kind: ServiceBinding
+metadata:
+  name: xsuaa-binding
+  namespace: fiori-mcp-test
+spec:
+  serviceInstanceName: xsuaa-instance
+  secretName: xsuaa-binding-secret

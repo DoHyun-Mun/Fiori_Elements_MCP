@@ -3,17 +3,15 @@
     "db": {
       "kind": "sqlite",
       "credentials": {
-        "url": "db.sqlite",
+        "url": ":memory:",
         "database": ":memory:"
       }
+    },
+    "auth": {
+      "kind": "dummy"
     }
   },
   "hana": {
     "deploy-format": "hdbtable"
-  },
-  "[development]": {
-    "auth": {
-      "kind": "mocked"
-    }
   }
 }

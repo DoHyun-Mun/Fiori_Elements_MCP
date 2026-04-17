@@ -112,9 +112,127 @@ GET  http://localhost:4004/catalog/Orders?$expand=items($expand=product)
 GET  http://localhost:4004/catalog/$metadata
 ```
 
+## ☁️ Kyma Runtime 배포
+
+### 아키텍처
+
+```
+[브라우저] → [APIRule/Istio Gateway] → [Approuter (XSUAA 인증)] → [CAP Backend :4004]
+                                              ↓
+                                    [XSUAA (BTP Service Operator)]
+                                              ↓
+                                         [IAS (IdP) - SSO]
+```
+
+### 접속 URL
+
+https://fiori-mcp-test.c56380c.kyma.ondemand.com/
+
+### 배포된 K8s 리소스
+
+| 리소스 | 파일 | 설명 |
+|--------|------|------|
+| XSUAA ServiceInstance | `k8s/xsuaa-serviceinstance.yaml` | BTP Service Operator로 XSUAA 프로비저닝 |
+| XSUAA ServiceBinding | `k8s/xsuaa-servicebinding.yaml` | XSUAA credentials 자동 생성 (`xsuaa-binding-secret`) |
+| UAA Default Services Secret | `k8s/uaa-default-services-secret.yaml` | Approuter의 `default-services.json` (XSUAA credentials) |
+| Approuter ConfigMap | `k8s/approuter-xs-app-configmap.yaml` | Approuter의 `xs-app.json` (라우팅 설정) |
+| Approuter Deployment | `k8s/approuter-deployment.yaml` | XSUAA 인증 + 라우팅 |
+| Approuter Service | `k8s/approuter-service.yaml` | Approuter ClusterIP Service |
+| CAP Backend Deployment | `k8s/deployment.yaml` | CAP Backend (Istio sidecar 비활성) |
+| CAP Backend Service | `k8s/service.yaml` | CAP Backend ClusterIP Service |
+| APIRule | `k8s/apirule.yaml` | Istio Gateway 외부 접속 |
+| Namespace | `k8s/namespace.yaml` | `fiori-mcp-test` namespace |
+
+### 인증 흐름 (OAuth2 Authorization Code Flow)
+
+```
+① 브라우저 → APIRule/Istio Gateway → Approuter
+      ↓
+② Approuter: "인증 안 됐네?" → 브라우저에 XSUAA authorize URL로 리다이렉트 지시
+      ↓
+③ 브라우저 → XSUAA (BTP 클라우드, Kyma 외부)
+      ↓
+④ XSUAA: "IAS가 IdP로 설정되어 있네" → 브라우저에 IAS 로그인 페이지로 리다이렉트
+      ↓
+⑤ 브라우저 → IAS 로그인 페이지 (사용자가 ID/PW 입력 또는 SSO)
+      ↓
+⑥ IAS → XSUAA로 SAML assertion 전달
+      ↓
+⑦ XSUAA → 브라우저에 authorization code 발급 → Approuter callback URL로 리다이렉트
+      ↓
+⑧ Approuter → XSUAA에 authorization code로 JWT 토큰 교환 요청
+      ↓
+⑨ XSUAA → Approuter에 JWT 토큰 발급
+      ↓
+⑩ Approuter: JWT 토큰을 세션에 저장, 요청을 CAP Backend로 포워딩 (Authorization 헤더에 JWT 첨부)
+      ↓
+⑪ CAP Backend: Fiori 앱 + OData 응답 → 브라우저
+```
+
+### 핵심 포인트
+
+- **XSUAA는 Kyma 클러스터 안에서 실행되지 않는다.** XSUAA는 BTP 클라우드 서비스(`authentication.ap12.hana.ondemand.com`)로 외부에서 운영된다.
+- Kyma 안의 **ServiceInstance/ServiceBinding 리소스**는 BTP Service Operator가 BTP 클라우드의 XSUAA 서비스를 "프로비저닝"하고, 생성된 credentials(clientid, clientsecret 등)을 Kubernetes Secret으로 가져오는 역할을 한다.
+- **Approuter**가 Kyma 안에서 실행되면서, 이 XSUAA credentials를 사용해 외부 XSUAA 서비스와 OAuth2 authorization code flow를 수행한다.
+- **IAS(Identity Authentication Service)**는 XSUAA 뒤에 있는 실제 IdP(Identity Provider)로, XSUAA가 인증을 IAS에 위임한다.
+- 요약: **APIRule → Approuter(Kyma 내부) → XSUAA(BTP 외부 서비스) → IAS(IdP) → 토큰 발급 → Approuter → CAP Backend(Kyma 내부)**
+
+### Docker 이미지 빌드 & Push
+
+```bash
+# CAP Backend
+docker build -t ghcr.io/dohyun-mun/fiori-mcp-test:latest .
+docker push ghcr.io/dohyun-mun/fiori-mcp-test:latest
+
+# Approuter
+cd approuter
+docker build -t ghcr.io/dohyun-mun/fiori-mcp-test-approuter:latest .
+docker push ghcr.io/dohyun-mun/fiori-mcp-test-approuter:latest
+```
+
+### 배포 순서
+
+```bash
+# 1. Namespace
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/namespace.yaml
+
+# 2. XSUAA (BTP Service Operator)
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/xsuaa-serviceinstance.yaml
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/xsuaa-servicebinding.yaml
+
+# 3. Secrets & ConfigMap
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/uaa-default-services-secret.yaml
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/approuter-xs-app-configmap.yaml
+
+# 4. CAP Backend
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/deployment.yaml
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/service.yaml
+
+# 5. Approuter
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/approuter-deployment.yaml
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/approuter-service.yaml
+
+# 6. APIRule (외부 접속)
+KUBECONFIG=kubeconfig-dev.yaml kubectl apply -f k8s/apirule.yaml
+```
+
+### 전체 재배포
+
+```bash
+KUBECONFIG=kubeconfig-dev.yaml kubectl rollout restart deployment fiori-mcp-test -n fiori-mcp-test
+KUBECONFIG=kubeconfig-dev.yaml kubectl rollout restart deployment approuter -n fiori-mcp-test
+```
+
+### 해결한 주요 이슈
+
+1. **IAS 직접 인증 불가** → XSUAA 인증으로 전환 (IAS는 XSUAA Bundled 타입이므로 직접 authorization_code flow 사용 불가)
+2. **502 Bad Gateway (ECONNRESET)** → Istio sidecar mTLS 충돌 해결 (Approuter, CAP Backend 양쪽 모두 `sidecar.istio.io/inject: "false"` 설정)
+
 ## 📚 참고 자료
 
 - [SAP CAP Documentation](https://cap.cloud.sap/docs/)
 - [Fiori Elements Documentation](https://ui5.sap.com/#/topic/03265b0408e2432c9571d6b3feb6b1fd)
 - [OData V4 Annotations](https://cap.cloud.sap/docs/advanced/odata#annotations)
 - [CDS Annotations for Fiori](https://cap.cloud.sap/docs/cds/annotations)
+- [SAP BTP Service Operator](https://github.com/SAP/sap-btp-service-operator)
+- [SAP Approuter](https://www.npmjs.com/package/@sap/approuter)

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: approuter-xs-app
+  namespace: fiori-mcp-test
+data:
+  xs-app.json: |
+    {
+      "welcomeFile": "/index.html",
+      "authenticationMethod": "route",
+      "routes": [
+        {
+          "source": "^/inventory/(.*)$",
+          "target": "/inventory/$1",
+          "destination": "cap-backend",
+          "authenticationType": "xsuaa",
+          "csrfProtection": false
+        },
+        {
+          "source": "^(.*)$",
+          "target": "$1",
+          "destination": "cap-backend",
+          "authenticationType": "xsuaa"
+        }
+      ]
+    }
