@@ -32,6 +32,12 @@ spec:
               value: '[{"name":"cap-backend","url":"http://store-pjt:4004","forwardAuthToken":true}]'
             - name: EXTERNAL_REVERSE_PROXY
               value: "true"
+            - name: SERVICE_BINDING_ROOT
+              value: "/bindings"
+          volumeMounts:
+            - name: xsuaa-binding
+              mountPath: /bindings/xsuaa
+              readOnly: true
           resources:
             requests:
               memory: "128Mi"
@@ -39,3 +45,7 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+      volumes:
+        - name: xsuaa-binding
+          secret:
+            secretName: xsuaa-binding-secret

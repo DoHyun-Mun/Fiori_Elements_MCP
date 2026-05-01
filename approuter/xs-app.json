@@ -1,18 +1,25 @@
 {
   "welcomeFile": "/index.html",
-  "authenticationMethod": "none",
+  "authenticationMethod": "route",
   "routes": [
+    {
+      "source": "^/chat/(.*)$",
+      "target": "/chat/$1",
+      "destination": "cap-backend",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
     {
       "source": "^/odata/v4/(.*)$",
       "target": "/odata/v4/$1",
       "destination": "cap-backend",
-      "authenticationType": "none"
+      "authenticationType": "xsuaa"
     },
     {
       "source": "^(.*)$",
       "target": "$1",
       "destination": "cap-backend",
-      "authenticationType": "none"
+      "authenticationType": "xsuaa"
     }
   ]
 }
