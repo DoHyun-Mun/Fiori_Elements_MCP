@@ -530,7 +530,7 @@ async function loadSupplyChainGraph() {
             fetch("/inventory/Products?$top=50&$select=ID,name&$filter=isActive eq true"),
             fetch("/inventory/Stores?$top=30&$select=ID,name&$filter=isActive eq true"),
             fetch("/inventory/ProductMaterials?$top=200&$select=product_ID,material_ID"),
-            fetch("/inventory/StoreProducts?$top=200&$select=store_ID,product_ID&$filter=isActive eq true")
+            fetch("/inventory/StoreProducts?$top=25&$select=store_ID,product_ID&$filter=isActive eq true")
         ]);
         const suppliers = (await supRes.json()).value || [];
         const materials = (await matRes.json()).value || [];
@@ -558,7 +558,11 @@ async function loadSupplyChainGraph() {
                 edges.push({from:"M_"+pm.material_ID, to:"P_"+pm.product_ID, color:{color:"#90CAF9"}, arrows:"to", width:2, label:"BOM", font:{size:9,color:"#1565C0"}});
             }
         });
+        var spEdgeSet = new Set();
         storePrds.forEach(function(sp) {
+            var key = sp.product_ID + "|" + sp.store_ID;
+            if (spEdgeSet.has(key)) return;
+            spEdgeSet.add(key);
             if (nodeIds.has("P_"+sp.product_ID) && nodeIds.has("T_"+sp.store_ID)) {
                 edges.push({from:"P_"+sp.product_ID, to:"T_"+sp.store_ID, color:{color:"#A5D6A7"}, arrows:"to", width:2, label:"판매", font:{size:9,color:"#2E7D32"}});
             }
@@ -568,7 +572,7 @@ async function loadSupplyChainGraph() {
         if (!container) return;
         var data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
         var options = {
-            physics: { solver: "forceAtlas2Based", forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 120 }, stabilization: { iterations: 100 } },
+            physics: { solver: "forceAtlas2Based", forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.01, springLength: 200, springConstant: 0.02 }, stabilization: { iterations: 100 } },
             interaction: { hover: true, tooltipDelay: 200 },
             layout: { improvedLayout: true }
         };
