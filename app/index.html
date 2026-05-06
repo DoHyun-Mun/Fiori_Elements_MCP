@@ -525,12 +525,12 @@ function renderShortcuts() {
 async function loadSupplyChainGraph() {
     try {
         const [supRes, matRes, prodRes, storeRes, pmRes, spRes] = await Promise.all([
-            fetch("/inventory/Suppliers?$top=10&$select=ID,name&$filter=isActive eq true"),
-            fetch("/inventory/Materials?$top=15&$select=ID,name,supplier_ID&$filter=isActive eq true"),
-            fetch("/inventory/Products?$top=10&$select=ID,name&$filter=isActive eq true"),
-            fetch("/inventory/Stores?$top=5&$select=ID,name&$filter=isActive eq true"),
-            fetch("/inventory/ProductMaterials?$top=30&$select=product_ID,material_ID"),
-            fetch("/inventory/StoreProducts?$top=30&$select=store_ID,product_ID&$filter=isActive eq true")
+            fetch("/inventory/Suppliers?$top=50&$select=ID,name&$filter=isActive eq true"),
+            fetch("/inventory/Materials?$top=50&$select=ID,name,supplier_ID&$filter=isActive eq true"),
+            fetch("/inventory/Products?$top=50&$select=ID,name&$filter=isActive eq true"),
+            fetch("/inventory/Stores?$top=30&$select=ID,name&$filter=isActive eq true"),
+            fetch("/inventory/ProductMaterials?$top=200&$select=product_ID,material_ID"),
+            fetch("/inventory/StoreProducts?$top=200&$select=store_ID,product_ID&$filter=isActive eq true")
         ]);
         const suppliers = (await supRes.json()).value || [];
         const materials = (await matRes.json()).value || [];
@@ -940,10 +940,12 @@ function checkAndLinkForecast(content, msgDiv) {
     
 
     // KPI 추출
-    // KPI 추출 (tableData가 비어있어도 안전)
     const avgForecast = tableData.length > 0 ? (tableData.reduce((s,r) => s + r.forecast, 0) / tableData.length).toFixed(1) : "-";
-    const trendMatch = content.match(/추세\s*변화율[：:]?\s*([+\-]?\d+%)/);
-    const modelMatch = content.match(/모델[：:]?\s*([^\n(]+)/);
+    // 추세 변화율: 테이블 `| 추세_변화율 | +6% |` 또는 인라인 형식
+    var trendMatch = content.match(/추세[_\s]*변화율\s*\|\s*([+\-]?\d+%)/);
+    if (!trendMatch) trendMatch = content.match(/변화율\s*([+\-]?\d+%)/);
+    // 예측 기간 추출: "**예측 기간**: 30일" 형태
+    var modelMatch = content.replace(/\*\*/g,"").match(/예측\s*기간[：:]\s*(\d+일?)/i);
     const peakRow = tableData.length > 0 ? tableData.reduce((max, r) => r.forecast > max.forecast ? r : max, tableData[0]) : null;
 
     // 분석 섹션 파싱 (테이블/리스트/다양한 형식 모두 지원)
@@ -954,12 +956,18 @@ function checkAndLinkForecast(content, msgDiv) {
         if (!match) return [];
         const section = match[0];
         const items = [];
-        // 테이블 형식: | key | value |
+        // 테이블 형식: | key | value | (헤더/구분선 제외)
         const tableRows = section.match(/\|\s*[^|\-][^|]*\|\s*[^|]+\|/g);
         if (tableRows) {
             tableRows.forEach(function(row) {
                 const cells = row.split('|').filter(function(c) { return c.trim() && !c.match(/^[\-]+$/); });
-                if (cells.length >= 2) items.push(cells[0].trim() + ': ' + cells[1].trim());
+                if (cells.length >= 2) {
+                    var k = cells[0].trim(), v = cells[1].trim();
+                    // 헤더 행 제외
+                    if (/^(지표|요인|날짜|항목)$/i.test(k)) return;
+                    if (/^(값|상태|예측)$/i.test(v)) return;
+                    items.push(k.replace(/_/g, ' ') + ': ' + v);
+                }
             });
         }
         // 리스트 형식: - text 또는 • text
@@ -1002,14 +1010,21 @@ function checkAndLinkForecast(content, msgDiv) {
     }
     // localStorage에 저장
     // 점포명/상품명 추출 (AI 응답에서)
-    var storeNames = ["강남 본점","서초 지점","잠실 지점","여의도 지점","홍대 지점","부산 해운대점","대구 동성로점","인천 송도점","광주 충장로점","대전 둔산점"];
+    // 점포명 동적 감지: "XX 본점/지점/점" 패턴 또는 하드코딩 목록
     var detectedStore = "";
     var detectedProduct = "";
-    storeNames.forEach(function(sn) { if (content.indexOf(sn) !== -1) detectedStore = sn; });
-    // 상품명 추출 (간단한 방식)
-    var qMatch = null;
-    try { qMatch = content.match(/"([^"]{2,30})"/); } catch(e) {}
-    if (qMatch) detectedProduct = qMatch[1];
+    var storeMatch = content.replace(/\*\*/g,"").match(/([가-힣]+\s*(?:본점|지점|점))/);
+    if (storeMatch) detectedStore = storeMatch[1].trim();
+    if (!detectedStore) {
+        var storeNames = ["강남 본점","서초 지점","잠실 지점","여의도 지점","홍대 지점","부산 해운대점","대구 동성로점","인천 송도점","광주 충장로점","대전 둔산점","이태원 지점"];
+        storeNames.forEach(function(sn) { if (content.indexOf(sn) !== -1) detectedStore = sn; });
+    }
+    // 상품명 추출: "**대상**: 강남 본점 - 미니 PC" 형식 우선
+    var targetMatch = content.replace(/\*\*/g, "").match(/대상[：:]\s*[^-\n]+-\s*(.+)/i);
+    if (targetMatch) detectedProduct = targetMatch[1].trim();
+    if (!detectedProduct) {
+        try { var qMatch = content.match(/"([^"]{2,30})"/); if (qMatch) detectedProduct = qMatch[1]; } catch(e) {}
+    }
     if (!detectedProduct && detectedStore) {
         var idx2 = content.indexOf(detectedStore);
         if (idx2 !== -1) {
@@ -1048,84 +1063,87 @@ function checkAndLinkForecast(content, msgDiv) {
     // 발주 추천 감지 & 데이터 파싱 & 버튼 추가
     var hasOrderRec = /발주\s*추천|추천\s*발주|order\s*recommend/i.test(content);
     if (hasOrderRec) {
-        // 발주 추천 데이터 파싱 (리스트 형식: "- 키: 값")
-        function extractVal(text, pattern) {
-            // Remove markdown bold markers before matching
-            var clean = text.replace(/\*\*/g, "");
-            var m = clean.match(pattern);
+        // 테이블 셀 값 추출 헬퍼
+        var clean = content.replace(/\*\*/g, "");
+        function tblVal(key) {
+            var re = new RegExp("\\|\\s*" + key + "\\s*\\|\\s*([^|\\n]+)", "i");
+            var m = clean.match(re);
             return m ? m[1].trim() : "";
         }
-        function extractNum(text, pattern) {
-            // Remove markdown bold markers before matching
-            var clean = text.replace(/\*\*/g, "");
-            var m = clean.match(pattern);
-            if (!m) return 0;
-            return parseFloat(m[1].replace(/[,]/g, "")) || 0;
+        function tblNum(key) {
+            var v = tblVal(key);
+            if (!v) return 0;
+            var n = v.match(/([\d,.]+)/);
+            return n ? parseFloat(n[1].replace(/,/g, "")) : 0;
         }
-        // 상품명
-        var recProduct = extractVal(content, /상품명[：:]\s*(.+)/i) || detectedProduct || "";
-        // ML 예측 - 유연한 패턴 (숫자 뒤 "개" 등 단위 허용)
-        var mlCurrentStock = extractNum(content, /현재\s*재고[：:]*\s*([\d,.]+)/i);
-        var mlSafetyStock = extractNum(content, /안전\s*재고[：:]*\s*([\d,.]+)/i);
-        var mlReorderPoint = extractNum(content, /재주문\s*시점[：:]*\s*([\d,.]+)/i);
-        var mlRecommendedQty = extractNum(content, /추천\s*발주\s*수량[：:]*\s*([\d,.]+)/i) || extractNum(content, /추천\s*조치[：:]*\s*([\d,.]+)/i);
-        var mlEstimatedCost = extractVal(content, /예상\s*비용[：:]*\s*([^\n]+)/i);
-        var mlUrgency = extractVal(content, /긴급도[：:]*\s*([^\n(]+)/i);
-        var mlStockDays = extractVal(content, /재고\s*(?:소진|지속)\s*(?:예상|일수)[：:]*\s*([^\n]+)/i);
-        var mlModel = extractVal(content, /모델[：:]\s*([^\n]+)/i);
-        // RPT-1 예측 - 다양한 형식 매칭
-        var rptTotal = extractNum(content, /총\s*7일\s*예측\s*수[량:：]*\s*([\d,.]+)/i) || extractNum(content, /7일\s*총\s*수요\s*예측[：:]*\s*([\d,.]+)/i) || extractNum(content, /향후\s*7일\s*수요\s*예측[：:]*\s*([\d,.]+)/i) || extractNum(content, /RPT.*7일.*예측[：:]*\s*([\d,.]+)/i) || extractNum(content, /7일\s*수요\s*예측[：:]*\s*([\d,.]+)/i);
-        var rptDaily = extractNum(content, /일\s*평균\s*예측\s*수[량:：]*\s*([\d,.]+)/i) || extractNum(content, /일\s*평균\s*수요\s*예측[：:]*\s*([\d,.]+)/i) || extractNum(content, /예측\s*일\s*평균\s*수요[：:]*\s*([\d,.]+)/i) || extractNum(content, /RPT.*일\s*평균[：:]*\s*([\d,.]+)/i) || extractNum(content, /일\s*평균[：:]*\s*([\d,.]+)개/i);
-        // 시계열 분석 - 유연한 패턴
-        var ts7day = extractNum(content, /최근\s*7일\s*평균[：:]*\s*([\d,.]+)/i);
-        var ts30day = extractNum(content, /최근\s*30일\s*평균[：:]*\s*([\d,.]+)/i);
-        var tsTrend = extractVal(content, /추세\s*변화율[：:]*\s*([^\n]+)/i);
-        // 외부 요인 - 유연한 패턴
-        var extDay = extractVal(content, /오늘[：:]*\s*([^\n]+)/i) || extractVal(content, /요일[：:]*\s*([^\n]+)/i);
-        var extSeason = extractVal(content, /계절[：:]*\s*([^\n]+)/i);
-        var extNews = extractVal(content, /뉴스\s*트렌드[：:]*\s*([^\n]+)/i) || extractVal(content, /신학기|트렌드[：:]*\s*([^\n]+)/i);
+        function exVal(pattern) { var m = clean.match(pattern); return m ? m[1].trim() : ""; }
+        function exNum(pattern) { var m = clean.match(pattern); return m ? parseFloat(m[1].replace(/,/g, "")) || 0 : 0; }
+
+        // ML 발주 추천 테이블에서 추출: | 상품명 | 현재재고 | 일수요 | 추천수량 | 긴급도 | 예상비용 |
+        var mlTableMatch = clean.match(/\|\s*[^|\n]+\|\s*[\d,.]+개?\s*\|\s*[\d,.]+[^\n|]*\|\s*[\d,.]+개?\s*\|\s*(HIGH|MEDIUM|LOW|CRITICAL)\s*\|\s*[^\n|]+\|/i);
+        var recProduct = "", mlCurrentStock = 0, mlDailyDemand = 0, mlRecommendedQty = 0, mlUrgency = "", mlEstimatedCost = "";
+        if (mlTableMatch) {
+            var cells = mlTableMatch[0].split("|").filter(function(c) { return c.trim(); });
+            if (cells.length >= 6) {
+                recProduct = cells[0].trim();
+                mlCurrentStock = parseFloat((cells[1].match(/([\d,.]+)/) || [0,0])[1]) || 0;
+                mlDailyDemand = parseFloat((cells[2].match(/([\d,.]+)/) || [0,0])[1]) || 0;
+                mlRecommendedQty = parseFloat((cells[3].match(/([\d,.]+)/) || [0,0])[1]) || 0;
+                mlUrgency = cells[4].trim();
+                mlEstimatedCost = cells[5].trim();
+            }
+        }
+        if (!recProduct) recProduct = detectedProduct || "";
+        if (!mlEstimatedCost) mlEstimatedCost = exVal(/예상\s*비용[：:]*\s*([^\n|]+)/i);
+
+        // 시계열 분석 테이블에서 추출
+        var ts7day = tblNum("최근7일_평균") || tblNum("최근 7일 평균");
+        var ts30day = tblNum("최근30일_평균") || tblNum("최근 30일 평균");
+        var tsTrend = tblVal("추세_변화율") || tblVal("추세 변화율");
+        var rptDaily = tblNum("RPT1_7일예측_일평균") || tblNum("RPT1 7일예측 일평균");
+        var mlDailyAvg = tblNum("ML_과거평균") || tblNum("ML 과거평균") || mlDailyDemand;
+
+        // RPT-1 테이블에서 7일 합계 계산
+        var rptRows = clean.match(/\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*[\d,.]+/g) || [];
+        var rptTotal = 0;
+        rptRows.forEach(function(r) { var n = r.match(/([\d,.]+)\s*$/); if (n) rptTotal += parseFloat(n[1]); });
+        if (!rptDaily && rptRows.length > 0) rptDaily = rptTotal / rptRows.length;
+
+        // 외부 요인 테이블에서 추출
+        var extDay = tblVal("요일");
+        var extSeason = tblVal("계절");
+        var extNews = tblVal("뉴스_트렌드") || tblVal("뉴스 트렌드");
+
         // AI 종합 판단
-        var aiConclusion = extractVal(content, /결론[：:]*\s*([^\n]+)/i);
-        var aiConfidence = extractVal(content, /신뢰도[：:]*\s*([^\n]+)/i);
-        var aiRecommend = extractVal(content, /권고[：:]*\s*([^\n]+)/i);
-        // 발주 사유 - 더 넓은 범위 캡처
-        var reasonSection = content.match(/발주\s*사유\s*분석[\s\S]*?(?=###|$)/i) || content.match(/발주\s*사유[:\s][\s\S]*?(?=###|$)/i);
+        var aiConclusion = exVal(/결론[：:]*\s*([^\n]+)/i);
+        var aiConfidence = exVal(/신뢰도[：:]*\s*([^\n]+)/i);
+        var aiRecommend = exVal(/권고[：:]*\s*([^\n]+)/i);
+
+        // 리스크/사유
         var reasons = [];
-        if (reasonSection) {
-            var rLines3 = reasonSection[0].split("\n");
-            for (var r3 = 0; r3 < rLines3.length; r3++) {
-                var rl = rLines3[r3].trim();
-                if (rl.length > 3 && (rl.startsWith("-") || rl.indexOf(":") > 0)) {
-                    reasons.push(rl.replace(/^[-•]\s*/, "").trim());
-                }
+        var riskSection = clean.match(/리스크[\s\S]*?(?=###|$)/i) || clean.match(/발주\s*사유[\s\S]*?(?=###|$)/i);
+        if (riskSection) {
+            var rLines = riskSection[0].split("\n");
+            for (var ri = 0; ri < rLines.length; ri++) {
+                var rl = rLines[ri].trim();
+                if (rl.length > 3 && rl.startsWith("-")) reasons.push(rl.replace(/^-\s*/, ""));
             }
         }
-        // Fallback: 발주 사유가 없으면 재고 분석에서 추출
-        if (reasons.length === 0) {
-            var stockSection = content.match(/재고\s*분석[\s\S]*?(?=###|-\s*시계열|-\s*외부|$)/i);
-            if (stockSection) {
-                var sLines3 = stockSection[0].split("\n");
-                for (var s3 = 0; s3 < sLines3.length; s3++) {
-                    var sl = sLines3[s3].trim();
-                    if (sl.length > 3 && sl.startsWith("-")) {
-                        reasons.push(sl.replace(/^[-•]\s*/, "").trim());
-                    }
-                }
-            }
-        }
+
         // priority
         var priority = "MEDIUM";
-        if (/높음|HIGH/i.test(mlUrgency)) priority = "HIGH";
-        else if (/낮음|LOW/i.test(mlUrgency)) priority = "LOW";
+        if (/CRITICAL/i.test(mlUrgency)) priority = "HIGH";
+        else if (/HIGH/i.test(mlUrgency)) priority = "HIGH";
+        else if (/LOW/i.test(mlUrgency)) priority = "LOW";
 
         var recData = {
             meta: "AI 발주 추천 | " + (detectedStore || "전체") + " | " + new Date().toLocaleString("ko-KR"),
             storeName: detectedStore,
             productName: recProduct,
             priority: priority,
-            ml: { model: mlModel, currentStock: mlCurrentStock, safetyStock: mlSafetyStock, reorderPoint: mlReorderPoint, recommendedQty: mlRecommendedQty, estimatedCost: mlEstimatedCost, urgency: mlUrgency, stockDays: mlStockDays },
+            ml: { model: "Safety Stock + EOQ", currentStock: mlCurrentStock, safetyStock: 0, reorderPoint: 0, recommendedQty: mlRecommendedQty, estimatedCost: mlEstimatedCost, urgency: mlUrgency, stockDays: "" },
             rpt: { totalDemand7d: rptTotal, dailyAvg: rptDaily },
-            timeseries: { avg7d: ts7day, avg30d: ts30day, trend: tsTrend },
+            timeseries: { avg7d: ts7day || mlDailyAvg, avg30d: ts30day, trend: tsTrend },
             external: { day: extDay, season: extSeason, news: extNews },
             reasons: reasons,
             aiJudgment: { conclusion: aiConclusion, confidence: aiConfidence, recommendation: aiRecommend }
