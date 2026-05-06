@@ -372,8 +372,8 @@ async function loadDashboardData() {
 
 async function loadSalesChart() {
     try {
-        const d7 = new Date(); d7.setDate(d7.getDate()-7); const d7str = d7.toISOString().slice(0,10);
-        const res = await fetch('/inventory/DailySales?$orderby=salesDate asc&$select=salesDate,revenue&$filter=salesDate ge ' + d7str);
+        const res = await fetch("/inventory/DailySales?$orderby=salesDate desc&$select=salesDate,revenue&$top=175");
+
         if (!res.ok) return;
         const data = await res.json();
         const items = data.value || [];
@@ -383,7 +383,7 @@ async function loadSalesChart() {
             const d = i.salesDate;
             dateMap[d] = (dateMap[d] || 0) + parseFloat(i.revenue);
         });
-        const dates = Object.keys(dateMap).sort();
+        const dates = Object.keys(dateMap).sort().slice(-7);
         const values = dates.map(d => dateMap[d]);
         const labels = dates.map(d => { const p = d.split('-'); return `${p[1]}/${p[2]}`; });
 
@@ -421,8 +421,8 @@ async function loadSalesChart() {
 
 async function loadInventoryChart() {
     try {
-        const s7 = new Date(); s7.setDate(s7.getDate()-7); const s7str = s7.toISOString().slice(0,10);
-        const res = await fetch('/inventory/InventorySnapshots?$orderby=snapshotDate asc&$select=snapshotDate,quantity,availableQty&$filter=snapshotDate ge ' + s7str);
+        const res = await fetch("/inventory/InventorySnapshots?$orderby=snapshotDate desc&$select=snapshotDate,quantity,availableQty&$top=175");
+
         if (!res.ok) return;
         const data = await res.json();
         const items = data.value || [];
@@ -434,7 +434,7 @@ async function loadInventoryChart() {
             dateMap[d].total += parseFloat(i.quantity);
             dateMap[d].available += parseFloat(i.availableQty);
         });
-        const dates = Object.keys(dateMap).sort();
+        const dates = Object.keys(dateMap).sort().slice(-7);
         const totals = dates.map(d => dateMap[d].total);
         const avails = dates.map(d => dateMap[d].available);
         const labels = dates.map(d => { const p = d.split('-'); return `${p[1]}/${p[2]}`; });
@@ -624,6 +624,46 @@ function toggleSidebar() {
 }
 
 document.addEventListener("DOMContentLoaded", () => { loadMenuData(); loadDashboardData(); toggleChat(); });
+
+// iframe에서 오는 navigateTo 메시지 수신
+window.addEventListener("message", function(e) {
+    if (e.data && e.data.type === "navigateTo" && e.data.url) {
+        showContentFrame(e.data.url); highlightMenuForUrl(e.data.url);
+    }
+});
+
+// URL에 해당하는 메뉴 항목을 active로 표시
+function highlightMenuForUrl(url) {
+    // 메뉴 트리에서 URL 매칭 → 상단 메뉴 선택 → 사이드바 렌더링 → nav-item active
+    for (var t = 0; t < menuTree.length; t++) {
+        var top = menuTree[t];
+        if (!top.children) continue;
+        for (var m = 0; m < top.children.length; m++) {
+            var mid = top.children[m];
+            // 중메뉴 직접 매칭
+            if (mid.url && url.indexOf(mid.url) !== -1) {
+                selectTopMenu(top.ID);
+                setTimeout(function() {
+                    document.querySelectorAll(".nav-item").forEach(function(el) { el.classList.toggle("active", el.dataset.id === mid.ID); });
+                }, 50);
+                return;
+            }
+            // 소메뉴 탐색
+            if (mid.children) {
+                for (var s = 0; s < mid.children.length; s++) {
+                    var sub = mid.children[s];
+                    if (sub.url && url.indexOf(sub.url) !== -1) {
+                        selectTopMenu(top.ID);
+                        setTimeout(function() {
+                            document.querySelectorAll(".nav-item").forEach(function(el) { el.classList.toggle("active", el.dataset.id === sub.ID); });
+                        }, 50);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -868,12 +908,124 @@ function autoResizeInput(el) {
 function appendMessage(role, content) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-msg ${role}`;
-    if (role === 'assistant') { msgDiv.innerHTML = renderMarkdown(content); }
+    if (role === 'assistant') { msgDiv.innerHTML = renderMarkdown(content); checkAndLinkForecast(content, msgDiv); }
     else if (role === 'system') { msgDiv.innerHTML = content; }
     else { msgDiv.textContent = content; }
     const container = document.getElementById('chatMessages');
     container.appendChild(msgDiv);
     container.scrollTop = container.scrollHeight;
+}
+
+// 수요 예측 응답 감지 & 시각화 페이지 연동
+function checkAndLinkForecast(content, msgDiv) {
+    // 예측 테이블 패턴 감지: | 날짜 | 예측 | 하한 | 상한 |
+    // 예측 테이블 패턴 감지: | 날짜 | 예측 | 하한 | 상한 | 또는 "수요 예측" 키워드
+    const tableRegex = /\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|/g;
+    const matches = content.match(tableRegex);
+    const hasForecastKeyword = /수요\s*예측\s*결과|예측\s*판매량|forecastQty/i.test(content);
+    if (!matches && !hasForecastKeyword) return;
+    if (matches && matches.length < 2 && !hasForecastKeyword) return;
+
+    // 테이블 데이터 파싱
+    const tableData = matches.map(row => {
+        const cells = row.split("|").filter(c => c.trim());
+        return {
+            date: cells[0].trim(),
+            forecast: parseFloat(cells[1]),
+            low: parseFloat(cells[2]),
+            high: parseFloat(cells[3])
+        };
+    }).filter(r => !isNaN(r.forecast));
+
+    
+
+    // KPI 추출
+    // KPI 추출 (tableData가 비어있어도 안전)
+    const avgForecast = tableData.length > 0 ? (tableData.reduce((s,r) => s + r.forecast, 0) / tableData.length).toFixed(1) : "-";
+    const trendMatch = content.match(/추세\s*변화율[：:]?\s*([+\-]?\d+%)/);
+    const modelMatch = content.match(/모델[：:]?\s*([^\n(]+)/);
+    const peakRow = tableData.length > 0 ? tableData.reduce((max, r) => r.forecast > max.forecast ? r : max, tableData[0]) : null;
+
+    // 분석 섹션 파싱 (테이블/리스트/다양한 형식 모두 지원)
+    const analysis = [];
+    function extractSection(text, titlePattern) {
+        const regex = new RegExp(titlePattern + '[\\s\\S]*?(?=#{2,}\\s|$)', 'i');
+        const match = text.match(regex);
+        if (!match) return [];
+        const section = match[0];
+        const items = [];
+        // 테이블 형식: | key | value |
+        const tableRows = section.match(/\|\s*[^|\-][^|]*\|\s*[^|]+\|/g);
+        if (tableRows) {
+            tableRows.forEach(function(row) {
+                const cells = row.split('|').filter(function(c) { return c.trim() && !c.match(/^[\-]+$/); });
+                if (cells.length >= 2) items.push(cells[0].trim() + ': ' + cells[1].trim());
+            });
+        }
+        // 리스트 형식: - text 또는 • text
+        const listItems = section.match(/^\s*[-•]\s*.+/gm);
+        if (listItems) {
+            listItems.forEach(function(li) { items.push(li.replace(/^\s*[-•]\s*/, '').replace(/\*\*/g, '')); });
+        }
+        return items;
+    }
+    var tsItems = extractSection(content, '시계열\\s*분석');
+    if (tsItems.length > 0) analysis.push({ title: "📊 시계열 분석", items: tsItems });
+    var extItems = extractSection(content, '외부\\s*요인');
+    if (extItems.length > 0) analysis.push({ title: "🌍 외부 요인", items: extItems });
+    var keyItems = extractSection(content, '(핵심\\s*사유|예측\\s*사유)');
+    if (keyItems.length > 0) analysis.push({ title: "💡 핵심 사유", items: keyItems });
+    var confItems = extractSection(content, '예측\\s*신뢰');
+    if (confItems.length > 0) analysis.push({ title: "🎯 예측 신뢰도", items: confItems });
+    // Fallback: analysis가 비어있으면 content에서 직접 추출
+    if (analysis.length === 0) {
+        var sections = content.split(/#{2,}\s*/g).filter(function(s) { return s.trim().length > 10; });
+        sections.forEach(function(sec) {
+            var lines = sec.split("\n").filter(function(l) { return l.trim(); });
+            if (lines.length < 2) return;
+            var title = lines[0].replace(/[#*]/g, "").trim();
+            if (title.match(/예측\s*결과|데이터\s*테이블/)) return;
+            var items = [];
+            for (var i = 1; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (line.startsWith("|") && !line.match(/^\|[-\s]+\|/)) {
+                    var cells = line.split("|").filter(function(c) { return c.trim(); });
+                    if (cells.length >= 2) items.push(cells[0].trim() + ": " + cells[1].trim());
+                } else if (line.startsWith("-") || line.startsWith("•")) {
+                    items.push(line.replace(/^[-•]\s*/, "").replace(/\*\*/g, ""));
+                }
+            }
+            if (items.length > 0 && title) {
+                analysis.push({ title: title.slice(0, 30), items: items.slice(0, 8) });
+            }
+        });
+    }
+    // localStorage에 저장
+    const forecastData = {
+        meta: "AI 예측 결과 | " + new Date().toLocaleString("ko-KR"),
+        kpi: {
+            avg: avgForecast,
+            trend: trendMatch ? trendMatch[1] : "-",
+            peak: peakRow ? peakRow.date.slice(5) : "-",
+            model: modelMatch ? modelMatch[1].trim().slice(0,20) : "AI"
+        },
+        table: tableData,
+        analysis: analysis.length > 0 ? analysis : [{ title: "📊 분석 요약", items: ["데이터 기반 예측 완료"] }]
+    };
+    localStorage.setItem("forecastData", JSON.stringify(forecastData));
+
+    // "상세 보기" 버튼 추가
+    const btn = document.createElement("div");
+    btn.style.cssText = "margin-top:12px;padding:8px 14px;background:linear-gradient(135deg,#0070F2,#6B4FBB);color:white;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:block;width:fit-content;";
+    btn.textContent = "📊 예측 결과 상세 보기";
+    btn.onclick = function() {
+        showContentFrame("/demandforecasts/webapp/index.html"); highlightMenuForUrl("/demandforecasts/webapp/index.html");
+        setTimeout(function() {
+            var frame = document.getElementById("contentFrame");
+            if (frame && frame.contentWindow) frame.contentWindow.postMessage({type:"forecastUpdate"}, "*");
+        }, 500);
+    };
+    msgDiv.appendChild(btn);
 }
 
 function renderMarkdown(text) {

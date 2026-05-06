@@ -1,35 +1,317 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>수요 예측</title>
+    <title>수요 예측 결과</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
-        html, body, body > div, #container, #container-uiarea {
-            height: 100%;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #F5F6FA; color: #1D2D3E; padding: 1.5rem; }
+        .page-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+        .page-header h1 { font-size: 1.2rem; font-weight: 700; }
+        .page-header .subtitle { font-size: 0.8rem; color: #556B82; margin-left: auto; }
+        
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+        .kpi-card { background: white; border: 1px solid #E5E8ED; border-radius: 10px; padding: 1rem; text-align: center; }
+        .kpi-card .kpi-value { font-size: 1.5rem; font-weight: 700; color: #0070F2; }
+        .kpi-card .kpi-label { font-size: 0.72rem; color: #8396A8; margin-top: 0.2rem; }
+        
+        .chart-section { background: white; border: 1px solid #E5E8ED; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+        .chart-section h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+        .chart-wrap { position: relative; height: 280px; }
+        
+        .table-section { background: white; border: 1px solid #E5E8ED; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+        .table-section h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { background: #F0F2F5; padding: 0.6rem 0.8rem; text-align: left; font-weight: 600; border-bottom: 2px solid #E5E8ED; }
+        td { padding: 0.5rem 0.8rem; border-bottom: 1px solid #EEF1F5; }
+        tr:hover td { background: #F8F9FB; }
+        
+        .analysis-section { background: white; border: 1px solid #E5E8ED; border-radius: 10px; padding: 1.25rem; }
+        .analysis-section h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .analysis-card { background: #F8F9FB; border-radius: 8px; padding: 0.85rem; }
+        .analysis-card h4 { font-size: 0.78rem; font-weight: 600; color: #556B82; margin-bottom: 0.5rem; }
+        .analysis-card ul { list-style: none; font-size: 0.78rem; line-height: 1.7; }
+        .analysis-card li::before { content: "• "; color: #0070F2; font-weight: bold; }
+        
+        .empty-state { text-align: center; padding: 4rem 2rem; color: #8396A8; }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-state p { font-size: 0.9rem; }
     </style>
-    <script
-        id="sap-ui-bootstrap"
-        src="https://sapui5.hana.ondemand.com/1.136.7/resources/sap-ui-core.js"
-        data-sap-ui-theme="sap_horizon"
-        data-sap-ui-resource-roots='{
-            "demandforecasts": "./"
-        }'
-        data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
-        data-sap-ui-compat-version="edge"
-        data-sap-ui-async="true"
-        data-sap-ui-frame-options="trusted"
-    ></script>
 </head>
-<body class="sapUiBody sapUiSizeCompact" id="content">
-    <div
-        data-sap-ui-component
-        data-name="demandforecasts"
-        data-id="container"
-        data-settings='{"id" : "demandforecasts"}'
-        data-handle-validation="true"
-    ></div>
+<body>
+    <div id="forecastContent">
+        <div class="empty-state" id="emptyState">
+            <div class="icon">🔮</div>
+            <p>AI Chat에서 수요 예측을 요청하면<br>여기에 시각화 결과가 표시됩니다.</p>
+            <p style="margin-top:0.75rem;font-size:0.78rem;color:#B0B8C4;">예: "강남 본점 미니PC 수요 예측해줘"</p>
+        </div>
+        
+        <div id="resultView" style="display:none;">
+            <div class="page-header">
+                <h1>📊 수요 예측 결과</h1>
+                <span class="subtitle" id="forecastMeta"></span>
+            </div>
+            
+            <!-- KPI Cards -->
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-value" id="kpiAvg">-</div><div class="kpi-label">평균 예측량</div></div>
+                <div class="kpi-card"><div class="kpi-value" id="kpiTrend">-</div><div class="kpi-label">추세 변화율</div></div>
+                <div class="kpi-card"><div class="kpi-value" id="kpiPeak">-</div><div class="kpi-label">최대 예측일</div></div>
+                <div class="kpi-card"><div class="kpi-value" id="kpiModel">-</div><div class="kpi-label">예측 모델</div></div>
+            </div>
+            
+            <!-- Chart -->
+            <div class="chart-section">
+                <h3>📈 예측 추이 차트</h3>
+                <div class="chart-wrap"><canvas id="forecastChart"></canvas></div>
+            </div>
+            
+            <!-- Table -->
+            <!-- Analysis -->
+            <div class="analysis-section" style="margin-bottom:1.25rem;">
+                <h3>📝 예측 사유 분석</h3>
+                <div class="analysis-grid" id="analysisGrid"></div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-section">
+                <h3>📋 예측 데이터 테이블</h3>
+                <div style="max-height:250px;overflow-y:auto;">
+                    <table id="forecastTable">
+                        <thead><tr><th>날짜</th><th>예측 판매량</th><th>하한값</th><th>상한값</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="margin-top:1.5rem;padding:1.25rem;background:linear-gradient(135deg,#EBF3FE,#F3E8FF);border-radius:10px;border:1px solid #D6E4F0;display:flex;align-items:center;gap:1rem;" id="actionSection">
+                <div style="flex:1;">
+                    <div style="font-size:0.9rem;font-weight:700;color:#1D2D3E;margin-bottom:0.3rem;">💡 다음 단계</div>
+                    <div style="font-size:0.75rem;color:#556B82;">예측 결과를 기반으로 발주를 생성하시겠습니까?</div>
+                </div>
+                <button onclick="createPurchaseOrder()" style="padding:0.6rem 1.2rem;background:linear-gradient(135deg,#0070F2,#6B4FBB);color:white;border:none;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;white-space:nowrap;">📋 예측 기반 발주 생성</button>
+                <button onclick="viewInventory()" style="padding:0.6rem 1.2rem;background:white;color:#0070F2;border:1.5px solid #0070F2;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;white-space:nowrap;">📦 재고 현황 보기</button>
+            </div>
+
+            <!-- Inline PO Creation Form (hidden by default) -->
+            <div id="poFormSection" style="display:none;margin-top:1rem;padding:1.25rem;background:white;border:2px solid #0070F2;border-radius:10px;">
+                <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:1rem;color:#0070F2;">📋 발주 생성 (예측 기반 자동 채움)</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+                    <div><label style="font-size:0.72rem;color:#556B82;display:block;margin-bottom:0.3rem;">점포</label><select id="poStore" style="width:100%;padding:0.5rem;border:1px solid #E5E8ED;border-radius:6px;font-size:0.8rem;"></select></div>
+                    <div><label style="font-size:0.72rem;color:#556B82;display:block;margin-bottom:0.3rem;">상품</label><select id="poProduct" style="width:100%;padding:0.5rem;border:1px solid #E5E8ED;border-radius:6px;font-size:0.8rem;"></select></div>
+                    <div><label style="font-size:0.72rem;color:#556B82;display:block;margin-bottom:0.3rem;">발주 수량</label><input id="poQuantity" type="number" style="width:100%;padding:0.5rem;border:1px solid #E5E8ED;border-radius:6px;font-size:0.8rem;" /></div>
+                    <div><label style="font-size:0.72rem;color:#556B82;display:block;margin-bottom:0.3rem;">단가 (₩)</label><input id="poUnitPrice" type="number" value="20000" style="width:100%;padding:0.5rem;border:1px solid #E5E8ED;border-radius:6px;font-size:0.8rem;" /></div>
+                </div>
+                <div style="display:flex;gap:0.75rem;">
+                    <button onclick="submitPO()" style="padding:0.55rem 1.5rem;background:#0070F2;color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;">✅ 발주 생성</button>
+                    <button onclick="cancelPOForm()" style="padding:0.55rem 1rem;background:#F0F2F5;color:#556B82;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">취소</button>
+                </div>
+                <div id="poResult" style="margin-top:0.75rem;font-size:0.8rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let forecastChartInstance = null;
+
+    // Action: 예측 기반 발주 생성
+    // Action: 발주 생성 폼 열기
+
+    function cancelPOForm() {
+        var form = document.getElementById("poFormSection");
+        if (form) form.style.display = "none";
+    }
+    function createPurchaseOrder() {
+        var form = document.getElementById("poFormSection");
+        form.style.display = "block";
+        // 점포/상품 목록 로드
+        loadPOOptions();
+        // 예측 수량 자동 채움
+        var raw = localStorage.getItem("forecastData");
+        if (raw) {
+            var data = JSON.parse(raw);
+            var avgQty = data.kpi && data.kpi.avg ? Math.round(parseFloat(data.kpi.avg)) : 10;
+            document.getElementById("poQuantity").value = avgQty;
+        }
+        form.scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function loadPOOptions() {
+        try {
+            var [stRes, prRes] = await Promise.all([
+                fetch("/inventory/Stores?$top=30&$select=ID,name&$filter=isActive eq true"),
+                fetch("/inventory/Products?$top=100&$select=ID,name&$filter=isActive eq true")
+            ]);
+            var stores = (await stRes.json()).value || [];
+            var products = (await prRes.json()).value || [];
+            var stSel = document.getElementById("poStore");
+            var prSel = document.getElementById("poProduct");
+            stSel.innerHTML = stores.map(function(s) { return "<option value=\x27" + s.ID + "\x27>" + s.name + "</option>"; }).join("");
+            prSel.innerHTML = products.map(function(p) { return "<option value=\x27" + p.ID + "\x27>" + p.name + "</option>"; }).join("");
+        } catch(e) { console.warn("옵션 로드 실패:", e); }
+    }
+
+    async function submitPO() {
+        var storeId = document.getElementById("poStore").value;
+        var productId = document.getElementById("poProduct").value;
+        var quantity = parseInt(document.getElementById("poQuantity").value) || 10;
+        var unitPrice = parseInt(document.getElementById("poUnitPrice").value) || 20000;
+        var resultDiv = document.getElementById("poResult");
+        resultDiv.innerHTML = "<span style=\x27color:#556B82;\x27>⏳ 발주 생성 중...</span>";
+        try {
+            var res = await fetch("/inventory/PurchaseOrders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ product_ID: productId, store_ID: storeId, quantity: quantity, unitPrice: unitPrice })
+            });
+            if (res.ok) {
+                var po = await res.json();
+                resultDiv.innerHTML = "<span style=\x27color:#188038;font-weight:600;\x27>✅ 발주 생성 완료! " + (po.poNumber || "") + " (수량: " + quantity + ", 상태: Draft)</span>";
+            } else {
+                var err = await res.text();
+                resultDiv.innerHTML = "<span style=\x27color:#D93025;\x27>❌ 생성 실패: " + err.substring(0,100) + "</span>";
+            }
+        } catch(e) {
+            resultDiv.innerHTML = "<span style=\x27color:#D93025;\x27>❌ 네트워크 오류: " + e.message + "</span>";
+        }
+    }
+
+    // Action: 재고 현황 보기 (자동 필터)
+    function viewInventory() {
+        var storeId = document.getElementById("poStore") ? document.getElementById("poStore").value : "";
+        var productId = document.getElementById("poProduct") ? document.getElementById("poProduct").value : "";
+        // 필터 정보 localStorage에 저장
+        localStorage.setItem("inventoryFilter", JSON.stringify({ store_ID: storeId, product_ID: productId }));
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: "navigateTo", url: "/inventories/webapp/index.html" }, "*");
+        } else {
+            window.location.href = "/inventories/webapp/index.html";
+        }
+    }
+    function loadForecastData() {
+        const raw = localStorage.getItem('forecastData');
+        if (!raw) return;
+        
+        try {
+            const data = JSON.parse(raw);
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('resultView').style.display = 'block';
+            renderForecast(data);
+        } catch(e) {
+            console.error('예측 데이터 파싱 실패:', e);
+        }
+    }
+
+    function renderForecast(data) {
+        // Meta
+        document.getElementById('forecastMeta').textContent = data.meta || '';
+        
+        // KPI
+        if (data.kpi) {
+            document.getElementById('kpiAvg').textContent = data.kpi.avg || '-';
+            document.getElementById('kpiTrend').textContent = data.kpi.trend || '-';
+            document.getElementById('kpiPeak').textContent = data.kpi.peak || '-';
+            document.getElementById('kpiModel').textContent = data.kpi.model || '-';
+        }
+        
+        // Chart
+        if (data.table && data.table.length > 0) {
+            const labels = data.table.map(r => r.date);
+            const forecasts = data.table.map(r => r.forecast);
+            const lows = data.table.map(r => r.low);
+            const highs = data.table.map(r => r.high);
+            
+            if (forecastChartInstance) forecastChartInstance.destroy();
+            forecastChartInstance = new Chart(document.getElementById('forecastChart'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: '예측 판매량',
+                            data: forecasts,
+                            borderColor: '#0070F2',
+                            backgroundColor: 'rgba(0,112,242,0.05)',
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#0070F2',
+                            tension: 0.3,
+                            fill: false
+                        },
+                        {
+                            label: '상한값',
+                            data: highs,
+                            borderColor: 'rgba(0,112,242,0.3)',
+                            backgroundColor: 'rgba(0,112,242,0.08)',
+                            borderWidth: 1,
+                            borderDash: [4,3],
+                            pointRadius: 0,
+                            tension: 0.3,
+                            fill: '+1'
+                        },
+                        {
+                            label: '하한값',
+                            data: lows,
+                            borderColor: 'rgba(0,112,242,0.3)',
+                            backgroundColor: 'rgba(0,112,242,0.08)',
+                            borderWidth: 1,
+                            borderDash: [4,3],
+                            pointRadius: 0,
+                            tension: 0.3,
+                            fill: '-1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, padding: 15, font: { size: 11 } } },
+                        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}` } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#F0F0F0' }, title: { display: true, text: '판매량', font: { size: 11 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+            
+            // Table
+            const tbody = document.querySelector('#forecastTable tbody');
+            tbody.innerHTML = data.table.map(r => 
+                `<tr><td>${r.date}</td><td><strong>${r.forecast}</strong></td><td>${r.low}</td><td>${r.high}</td></tr>`
+            ).join('');
+        }
+        
+        // Analysis
+        if (data.analysis) {
+            const grid = document.getElementById('analysisGrid');
+            grid.innerHTML = data.analysis.map(section => `
+                <div class="analysis-card">
+                    <h4>${section.title}</h4>
+                    <ul>${section.items.map(item => `<li>${item}</li>`).join('')}</ul>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Listen for storage changes (from parent frame)
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'forecastData') loadForecastData();
+    });
+    
+    // Also check on message from parent
+    window.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'forecastUpdate') {
+            loadForecastData();
+        }
+    });
+
+    // Initial load
+    loadForecastData();
+    </script>
 </body>
 </html>

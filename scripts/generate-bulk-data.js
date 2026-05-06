@@ -24,7 +24,7 @@ function randDateTime(y1, m1, d1, y2, m2, d2) {
 
 // ── reference data ──
 const storeIds = [1,2,3,4,5].map(i => 'd1000001-' + pad(i,4) + '-4000-8000-00000000000' + i);
-const productIds = [1,2,3,4,5].map(i => 'b1000001-' + pad(i,4) + '-4000-8000-00000000000' + i);
+const productIds = Array.from({length:100}, (_,i) => "b1000001-" + pad(i+1,4) + "-4000-8000-" + pad(i+1,12));
 
 // ── Korean name data ──
 const lastNames = ['김','이','박','최','정','강','조','윤','장','임','한','오','서','신','권','황','안','송','류','전','홍','고','문','양','손','배','백','허','유','남','심','노','하','곽','성','차','주','우','구','민','진','나','엄','원','천','방','공','현','함'];
@@ -197,44 +197,35 @@ fs.writeFileSync('db/data/com.inventory-CustomerPurchaseItems.csv', ciHeader + '
 console.log(`  CustomerPurchaseItems: ${items.length} rows`);
 
 // ═══════════════════════════════════════════════════════════════
-// 4. STORE PRODUCTS (500건)
+// 4. STORE PRODUCTS (유니크 store+product 조합, 최대 500건)
 // ═══════════════════════════════════════════════════════════════
-console.log('Generating StoreProducts...');
-
-// 먼저 기존 Products에서 더 많은 제품이 필요 → 5개 제품 × 5개 매장 = 25개뿐
-// 500건을 만들려면 더 많은 제품이 필요하므로, 기존 5개 매장과 5개 제품으로
-// 중복 없는 조합 25개 + 추가 가상 제품 ID로 확장
-// 기존 Products를 참조하면서 500건 생성
+console.log("Generating StoreProducts (unique store+product)...");
 
 const spRows = [];
 const usedCombos = new Set();
+let spIdx = 0;
 
-for (let i = 1; i <= 500; i++) {
-  const id = mkUUID('c1000001', i);
+// 5 stores x 100 products = 500 가능한 조합 중 유니크하게 생성
+while (spRows.length < 500 && spRows.length < storeIds.length * productIds.length) {
   const storeId = pick(storeIds);
   const productId = pick(productIds);
-  // store+product combo key (중복 허용 - 같은 제품이 같은 매장에 여러 진열 위치 가능)
+  const comboKey = storeId + "|" + productId;
+  if (usedCombos.has(comboKey)) continue;
+  usedCombos.add(comboKey);
+  spIdx++;
+  const id = mkUUID("c1000001", spIdx);
   const costPrice = randInt(5000, 40000);
-  const sellingPrice = Math.round(costPrice * (1 + Math.random() * 0.8 + 0.1)); // 10~90% 마진
+  const sellingPrice = Math.round(costPrice * (1 + Math.random() * 0.8 + 0.1));
   const minStock = randInt(5, 50);
   const maxStock = minStock + randInt(50, 500);
   const displayOrder = randInt(1, 100);
-
   spRows.push([
-    id,
-    storeId,
-    productId,
-    sellingPrice,
-    costPrice,
-    minStock,
-    maxStock,
-    displayOrder,
-    'true'
-  ].join(','));
+    id, storeId, productId, sellingPrice, costPrice, minStock, maxStock, displayOrder, "true"
+  ].join(","));
 }
 
-const spHeader = 'ID,store_ID,product_ID,sellingPrice,costPrice,minStock,maxStock,displayOrder,isActive';
-fs.writeFileSync('db/data/com.inventory-StoreProducts.csv', spHeader + '\n' + spRows.join('\n') + '\n');
-console.log(`  StoreProducts: ${spRows.length} rows`);
+const spHeader = "ID,store_ID,product_ID,sellingPrice,costPrice,minStock,maxStock,displayOrder,isActive";
+fs.writeFileSync("db/data/com.inventory-StoreProducts.csv", spHeader + "\n" + spRows.join("\n") + "\n");
+console.log("  StoreProducts: " + spRows.length + " rows (unique combos)");
 
 console.log('\nDone! All bulk data generated successfully.');
