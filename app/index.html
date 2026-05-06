@@ -922,7 +922,7 @@ function checkAndLinkForecast(content, msgDiv) {
     // 예측 테이블 패턴 감지: | 날짜 | 예측 | 하한 | 상한 | 또는 "수요 예측" 키워드
     const tableRegex = /\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|/g;
     const matches = content.match(tableRegex);
-    const hasForecastKeyword = /수요\s*예측\s*결과|예측\s*판매량|forecastQty|발주\s*추천|추천\s*발주/i.test(content);
+    const hasForecastKeyword = /수요\s*예측\s*결과|예측\s*판매량|forecastQty|발주\s*추천|추천\s*발주|이탈\s*예측|이탈\s*위험|이상\s*탐지|anomal/i.test(content);
     if (!matches && !hasForecastKeyword) return;
     if (matches && matches.length < 2 && !hasForecastKeyword) return;
 
@@ -1058,7 +1058,7 @@ function checkAndLinkForecast(content, msgDiv) {
         var origOnload = frame.onload;
         frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type:"forecastUpdate"}, "*"); }, 200); };
     };
-    if (!/발주\s*추천|추천\s*발주/i.test(content)) { msgDiv.appendChild(btn); }
+    if (!/발주\s*추천|추천\s*발주|이탈\s*예측|이탈\s*위험|이상\s*탐지/i.test(content)) { msgDiv.appendChild(btn); }
 
     // 발주 추천 감지 & 데이터 파싱 & 버튼 추가
     var hasOrderRec = /발주\s*추천|추천\s*발주|order\s*recommend/i.test(content);
@@ -1159,6 +1159,105 @@ function checkAndLinkForecast(content, msgDiv) {
             frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type:"recommendationUpdate"}, "*"); }, 200); };
         };
         msgDiv.appendChild(btn2);
+    }
+
+    // 이탈 예측 감지 & 데이터 파싱 & 버튼 추가
+    var hasChurn = /이탈\s*예측|이탈\s*위험|churn/i.test(content);
+    if (hasChurn && /고객\s*수|이탈\s*위험\s*비율/i.test(content)) {
+        var cc = content.replace(/\*\*/g, "");
+        var totalCust = (cc.match(/총\s*고객\s*수[：:]*\s*([\d,]+)/) || [0,""])[1];
+        var churnCust = (cc.match(/이탈\s*위험\s*고객\s*수[：:]*\s*([\d,]+)/) || [0,""])[1];
+        var churnRate = (cc.match(/이탈\s*위험\s*비율[：:]*\s*([\d,.]+%?)/) || [0,""])[1];
+        var accuracy = (cc.match(/정확도[^：:]*[：:]\s*([\d,.]+%?)/) || [0,""])[1];
+        var precision = (cc.match(/정밀도[^：:]*[：:]\s*([\d,.]+%?)/) || [0,""])[1];
+        var recall = (cc.match(/재현율[^：:]*[：:]\s*([\d,.]+%?)/) || [0,""])[1];
+        var f1 = (cc.match(/F1\s*점수[：:]*\s*([\d,.]+%?)/) || [0,""])[1];
+        var auc = (cc.match(/AUC[^：:]*[：:]\s*([\d,.]+%?)/) || [0,""])[1];
+        // 고객 테이블 파싱
+        var custRows = cc.match(/\|\s*CUST-[^|]+\|[^\n]+/g) || [];
+        var customers = custRows.map(function(row) {
+            var c = row.split("|").filter(function(x){return x.trim();});
+            return { code: (c[0]||"").trim(), name: (c[1]||"").trim(), age: (c[2]||"").trim(), membership: (c[3]||"").trim(), city: (c[4]||"").trim(), probability: (c[5]||"").trim(), risk: (c[6]||"").trim(), factor: (c[7]||"").trim() };
+        });
+        // 주요 이탈 요인
+        var factors = [];
+        var fSection = cc.match(/주요\s*이탈\s*요인[\s\S]*?(?=###|$)/i);
+        if (fSection) {
+            var fLines = fSection[0].split("\n");
+            for (var fi = 0; fi < fLines.length; fi++) {
+                var fl = fLines[fi].trim();
+                if (fl.startsWith("-") && fl.length > 3) factors.push(fl.replace(/^-\s*/, ""));
+            }
+        }
+        var churnData = {
+            meta: "이탈 예측 | " + (detectedStore || "전체") + " | " + new Date().toLocaleString("ko-KR"),
+            storeName: detectedStore,
+            totalCustomers: totalCust ? totalCust + "명" : "-",
+            churnCustomers: churnCust ? churnCust + "명" : "-",
+            churnRate: churnRate || "-",
+            accuracy: accuracy || "-",
+            performance: { accuracy: accuracy||"-", precision: precision||"-", recall: recall||"-", f1: f1||"-", auc: auc||"-" },
+            customers: customers,
+            factors: factors
+        };
+        localStorage.setItem("churnPredictionData", JSON.stringify(churnData));
+        var btn3 = document.createElement("div");
+        btn3.style.cssText = "margin-top:8px;padding:8px 14px;background:linear-gradient(135deg,#D93025,#7B2FF2);color:white;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:block;width:fit-content;";
+        btn3.textContent = "⚠️ 이탈 예측 상세 보기";
+        btn3.onclick = function() {
+            showContentFrame("/churnpredictions/webapp/index.html");
+            highlightMenuForUrl("/churnpredictions/webapp/index.html");
+            var frame = document.getElementById("contentFrame");
+            frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type:"churnUpdate"}, "*"); }, 200); };
+        };
+        msgDiv.appendChild(btn3);
+    }
+
+    // 이상 탐지 감지 & 데이터 파싱 & 버튼 추가
+    var hasAnomaly = /이상\s*탐지|anomal/i.test(content);
+    if (hasAnomaly && /이상\s*탐지\s*건수|총\s*기록\s*수/i.test(content)) {
+        var ac = content.replace(/\*\*/g, "");
+        // KPI 추출
+        var aStore = (ac.match(/점포\s*\|\s*([^|\n]+)/) || [0,""])[1].trim();
+        var aTarget = (ac.match(/분석\s*대상\s*\|\s*([^|\n]+)/) || [0,""])[1].trim();
+        var aTotal = (ac.match(/총\s*기록\s*수\s*\|\s*([^|\n]+)/) || [0,""])[1].trim();
+        var aCount = (ac.match(/이상\s*탐지\s*건수\s*\|\s*([^|\n]+)/) || [0,""])[1].trim();
+        // 이상 항목 테이블 파싱
+        var anomRows = ac.match(/\|\s*\d{4}-\d{2}-\d{2}\s*\|[^\n]+/g) || [];
+        var anomItems = anomRows.map(function(row) {
+            var c = row.split("|").filter(function(x){return x.trim();});
+            return { date:(c[0]||"").trim(), product:(c[1]||"").trim(), qty:(c[2]||"").trim(), change:(c[3]||"").trim(), type:(c[4]||"").trim(), severity:(c[5]||"").trim() };
+        });
+        // 탐지 사유
+        var aReasons = [];
+        var rSec = ac.match(/탐지\s*사유[\s\S]*?(?=###|$)/i);
+        if (rSec) { var rL = rSec[0].split("\n"); for (var ai=0;ai<rL.length;ai++) { var al=rL[ai].trim(); if(al.startsWith("-")&&al.length>3) aReasons.push(al.replace(/^-\s*/,"")); } }
+        // 권고 사항
+        var aRecs = [];
+        var recSec = ac.match(/권고\s*사항[\s\S]*?(?=###|$)/i);
+        if (recSec) { var rcL = recSec[0].split("\n"); for (var ri2=0;ri2<rcL.length;ri2++) { var rl2=rcL[ri2].trim(); if(rl2.startsWith("-")&&rl2.length>3) aRecs.push(rl2.replace(/^-\s*/,"")); } }
+
+        var anomData = {
+            meta: "이상 탐지 | " + (aStore || detectedStore || "전체") + " | " + new Date().toLocaleString("ko-KR"),
+            store: aStore || detectedStore || "-",
+            target: aTarget || "-",
+            totalRecords: aTotal || "-",
+            anomalyCount: aCount || "-",
+            items: anomItems,
+            reasons: aReasons,
+            recommendations: aRecs
+        };
+        localStorage.setItem("salesAnomalyData", JSON.stringify(anomData));
+        var btn4 = document.createElement("div");
+        btn4.style.cssText = "margin-top:8px;padding:8px 14px;background:linear-gradient(135deg,#E37400,#D93025);color:white;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:block;width:fit-content;";
+        btn4.textContent = "🚨 이상 탐지 상세 보기";
+        btn4.onclick = function() {
+            showContentFrame("/salesanomalies/webapp/index.html");
+            highlightMenuForUrl("/salesanomalies/webapp/index.html");
+            var frame = document.getElementById("contentFrame");
+            frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type:"anomalyUpdate"}, "*"); }, 200); };
+        };
+        msgDiv.appendChild(btn4);
     }
 }
 

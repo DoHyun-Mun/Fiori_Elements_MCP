@@ -1,35 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>매출 이상 탐지</title>
-    <style>
-        html, body, body > div, #container, #container-uiarea {
-            height: 100%;
-        }
-    </style>
-    <script
-        id="sap-ui-bootstrap"
-        src="https://sapui5.hana.ondemand.com/1.136.7/resources/sap-ui-core.js"
-        data-sap-ui-theme="sap_horizon"
-        data-sap-ui-resource-roots='{
-            "salesanomalies": "./"
-        }'
-        data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
-        data-sap-ui-compat-version="edge"
-        data-sap-ui-async="true"
-        data-sap-ui-frame-options="trusted"
-    ></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>매출 이상 탐지</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#F5F6FA;color:#1D2D3E;padding:1.5rem;overflow-y:auto}
+.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem}
+.header h1{font-size:1.1rem;font-weight:700}
+.header .meta{font-size:0.75rem;color:#8396A8;margin-left:auto}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1rem}
+.kpi{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:0.85rem;text-align:center}
+.kpi .val{font-size:1.3rem;font-weight:700;line-height:1.2}
+.kpi .lbl{font-size:0.68rem;color:#8396A8;margin-top:0.15rem}
+.kpi.danger .val{color:#D93025}
+.kpi.warn .val{color:#E37400}
+.kpi.info .val{color:#0070F2}
+.kpi.ok .val{color:#188038}
+.card{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.card h3{font-size:0.85rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem}
+.table-wrap{max-height:350px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:0.75rem}
+th{background:#F0F2F5;padding:0.5rem 0.5rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED;position:sticky;top:0}
+td{padding:0.4rem 0.5rem;border-bottom:1px solid #EEF1F5}
+tr:hover td{background:#F8F9FB}
+.sev-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:600}
+.sev-HIGH,.sev-CRITICAL{background:#FCE8E6;color:#D93025}
+.sev-MEDIUM{background:#FEF3E0;color:#E37400}
+.sev-LOW{background:#E6F4EA;color:#188038}
+.spike{color:#D93025;font-weight:600}
+.drop{color:#0070F2;font-weight:600}
+.reason-item{padding:0.35rem 0;font-size:0.78rem;line-height:1.5;border-bottom:1px solid #F8F9FB}
+.reason-item:last-child{border-bottom:none}
+.empty-state{text-align:center;padding:4rem 2rem;color:#8396A8}
+.empty-state .icon{font-size:3rem;margin-bottom:1rem}
+</style>
 </head>
-<body class="sapUiBody sapUiSizeCompact" id="content">
-    <div
-        data-sap-ui-component
-        data-name="salesanomalies"
-        data-id="container"
-        data-settings='{"id" : "salesanomalies"}'
-        data-handle-validation="true"
-    ></div>
+<body>
+<div id="emptyState" class="empty-state">
+<div class="icon">🚨</div>
+<p>AI Chat에서 이상 탐지를 요청하면<br>여기에 시각화 결과가 표시됩니다.</p>
+<p style="margin-top:0.75rem;font-size:0.78rem;color:#B0B8C4;">예: "강남 본점 매출 이상 탐지 해줘"</p>
+</div>
+<div id="resultView" style="display:none;">
+<div class="header">
+<h1>🚨 매출 이상 탐지</h1>
+<span class="meta" id="anomMeta"></span>
+</div>
+<div class="kpi-row">
+<div class="kpi info"><div class="val" id="kStore">-</div><div class="lbl">점포</div></div>
+<div class="kpi ok"><div class="val" id="kTotal">-</div><div class="lbl">총 기록 수</div></div>
+<div class="kpi danger"><div class="val" id="kAnomalies">-</div><div class="lbl">이상 탐지 건수</div></div>
+<div class="kpi warn"><div class="val" id="kTarget">-</div><div class="lbl">분석 대상</div></div>
+</div>
+<div class="card">
+<h3>⚠️ 주요 이상 항목</h3>
+<div class="table-wrap">
+<table id="anomTable">
+<thead><tr><th>날짜</th><th>상품명</th><th>판매량</th><th>정상 범위 대비</th><th>유형</th><th>심각도</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<div class="card">
+<h3>🔍 탐지 사유</h3>
+<div id="reasonsList"></div>
+</div>
+<div class="card">
+<h3>💡 권고 사항</h3>
+<div id="recList"></div>
+</div>
+</div>
+<script>
+function loadData() {
+    var raw = localStorage.getItem("salesAnomalyData");
+    if (!raw) return;
+    try {
+        var d = JSON.parse(raw);
+        document.getElementById("emptyState").style.display = "none";
+        document.getElementById("resultView").style.display = "block";
+        render(d);
+    } catch(e) { console.error(e); }
+}
+function render(d) {
+    document.getElementById("anomMeta").textContent = d.meta || "";
+    document.getElementById("kStore").textContent = d.store || "-";
+    document.getElementById("kTotal").textContent = d.totalRecords || "-";
+    document.getElementById("kAnomalies").textContent = d.anomalyCount || "-";
+    document.getElementById("kTarget").textContent = d.target || "-";
+    // Table
+    if (d.items && d.items.length > 0) {
+        var tbody = document.querySelector("#anomTable tbody");
+        tbody.innerHTML = d.items.map(function(r) {
+            var sevClass = "sev-" + (r.severity || "MEDIUM");
+            var changeClass = (r.change && r.change.indexOf("+") !== -1) ? "spike" : (r.change && r.change.indexOf("-") !== -1 ? "drop" : "");
+            return "<tr><td>" + (r.date||"-") + "</td><td><strong>" + (r.product||"-") + "</strong></td><td>" + (r.qty||"-") + "</td><td class='" + changeClass + "'>" + (r.change||"-") + "</td><td>" + (r.type||"-") + "</td><td><span class='sev-badge " + sevClass + "'>" + (r.severity||"-") + "</span></td></tr>";
+        }).join("");
+    }
+    // Reasons
+    if (d.reasons && d.reasons.length > 0) {
+        document.getElementById("reasonsList").innerHTML = d.reasons.map(function(r) { return '<div class="reason-item">' + r + '</div>'; }).join("");
+    }
+    // Recommendations
+    if (d.recommendations && d.recommendations.length > 0) {
+        document.getElementById("recList").innerHTML = d.recommendations.map(function(r) { return '<div class="reason-item">' + r + '</div>'; }).join("");
+    }
+}
+window.addEventListener("message", function(e) { if (e.data && e.data.type === "anomalyUpdate") loadData(); });
+</script>
 </body>
 </html>

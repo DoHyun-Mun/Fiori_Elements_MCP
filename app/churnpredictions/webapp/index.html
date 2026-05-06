@@ -1,35 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>고객 이탈 예측</title>
-    <style>
-        html, body, body > div, #container, #container-uiarea {
-            height: 100%;
-        }
-    </style>
-    <script
-        id="sap-ui-bootstrap"
-        src="https://sapui5.hana.ondemand.com/1.136.7/resources/sap-ui-core.js"
-        data-sap-ui-theme="sap_horizon"
-        data-sap-ui-resource-roots='{
-            "churnpredictions": "./"
-        }'
-        data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
-        data-sap-ui-compat-version="edge"
-        data-sap-ui-async="true"
-        data-sap-ui-frame-options="trusted"
-    ></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고객 이탈 예측</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#F5F6FA;color:#1D2D3E;padding:1.5rem;overflow-y:auto}
+.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem}
+.header h1{font-size:1.1rem;font-weight:700}
+.header .meta{font-size:0.75rem;color:#8396A8;margin-left:auto}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1rem}
+.kpi{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:0.85rem;text-align:center}
+.kpi .val{font-size:1.4rem;font-weight:700;line-height:1.2}
+.kpi .lbl{font-size:0.68rem;color:#8396A8;margin-top:0.15rem}
+.kpi.danger .val{color:#D93025}
+.kpi.warn .val{color:#E37400}
+.kpi.info .val{color:#0070F2}
+.kpi.ok .val{color:#188038}
+.card{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.card h3{font-size:0.85rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem}
+.perf-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.5rem}
+.perf-item{text-align:center;padding:0.5rem;background:#F8F9FB;border-radius:8px}
+.perf-item .pval{font-size:1.1rem;font-weight:700;color:#188038}
+.perf-item .plbl{font-size:0.65rem;color:#8396A8;margin-top:0.15rem}
+.table-wrap{max-height:300px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:0.78rem}
+th{background:#F0F2F5;padding:0.5rem 0.6rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED;position:sticky;top:0}
+td{padding:0.45rem 0.6rem;border-bottom:1px solid #EEF1F5}
+tr:hover td{background:#F8F9FB}
+.risk-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.68rem;font-weight:600}
+.risk-HIGH{background:#FCE8E6;color:#D93025}
+.risk-MEDIUM{background:#FEF3E0;color:#E37400}
+.risk-LOW{background:#E6F4EA;color:#188038}
+.factor-card{background:#F8F9FB;border-radius:8px;padding:0.85rem;margin-bottom:0.5rem}
+.factor-card .ftitle{font-size:0.78rem;font-weight:600;color:#556B82;margin-bottom:0.4rem}
+.factor-card .fdesc{font-size:0.78rem;line-height:1.6;color:#1D2D3E}
+.empty-state{text-align:center;padding:4rem 2rem;color:#8396A8}
+.empty-state .icon{font-size:3rem;margin-bottom:1rem}
+</style>
 </head>
-<body class="sapUiBody sapUiSizeCompact" id="content">
-    <div
-        data-sap-ui-component
-        data-name="churnpredictions"
-        data-id="container"
-        data-settings='{"id" : "churnpredictions"}'
-        data-handle-validation="true"
-    ></div>
+<body>
+<div id="emptyState" class="empty-state">
+<div class="icon">⚠️</div>
+<p>AI Chat에서 이탈 예측을 요청하면<br>여기에 시각화 결과가 표시됩니다.</p>
+<p style="margin-top:0.75rem;font-size:0.78rem;color:#B0B8C4;">예: "강남 본점 고객 이탈 예측 해줘"</p>
+</div>
+<div id="resultView" style="display:none;">
+<div class="header">
+<h1>⚠️ 고객 이탈 예측</h1>
+<span class="meta" id="churnMeta"></span>
+</div>
+<div class="kpi-row">
+<div class="kpi info"><div class="val" id="kTotalCust">-</div><div class="lbl">총 고객 수</div></div>
+<div class="kpi danger"><div class="val" id="kChurnCust">-</div><div class="lbl">이탈 위험 고객</div></div>
+<div class="kpi warn"><div class="val" id="kChurnRate">-</div><div class="lbl">이탈 위험 비율</div></div>
+<div class="kpi ok"><div class="val" id="kAccuracy">-</div><div class="lbl">모델 정확도</div></div>
+</div>
+<div class="card">
+<h3>📊 모델 성능</h3>
+<div class="perf-grid">
+<div class="perf-item"><div class="pval" id="pAccuracy">-</div><div class="plbl">정확도</div></div>
+<div class="perf-item"><div class="pval" id="pPrecision">-</div><div class="plbl">정밀도</div></div>
+<div class="perf-item"><div class="pval" id="pRecall">-</div><div class="plbl">재현율</div></div>
+<div class="perf-item"><div class="pval" id="pF1">-</div><div class="plbl">F1 점수</div></div>
+<div class="perf-item"><div class="pval" id="pAuc">-</div><div class="plbl">AUC-ROC</div></div>
+</div>
+</div>
+<div class="card">
+<h3>🧍 이탈 위험 고객 리스트</h3>
+<div class="table-wrap">
+<table id="churnTable">
+<thead><tr><th>고객코드</th><th>이름</th><th>연령대</th><th>멤버십</th><th>도시</th><th>이탈확률</th><th>위험도</th><th>주요 요인</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<div class="card">
+<h3>🔍 주요 이탈 요인</h3>
+<div id="factorsList"></div>
+</div>
+</div>
+<script>
+function loadData() {
+    var raw = localStorage.getItem("churnPredictionData");
+    if (!raw) return;
+    try {
+        var d = JSON.parse(raw);
+        document.getElementById("emptyState").style.display = "none";
+        document.getElementById("resultView").style.display = "block";
+        render(d);
+    } catch(e) { console.error(e); }
+}
+function render(d) {
+    document.getElementById("churnMeta").textContent = d.meta || "";
+    // KPI
+    document.getElementById("kTotalCust").textContent = d.totalCustomers || "-";
+    document.getElementById("kChurnCust").textContent = d.churnCustomers || "-";
+    document.getElementById("kChurnRate").textContent = d.churnRate || "-";
+    document.getElementById("kAccuracy").textContent = d.accuracy || "-";
+    // Performance
+    if (d.performance) {
+        document.getElementById("pAccuracy").textContent = d.performance.accuracy || "-";
+        document.getElementById("pPrecision").textContent = d.performance.precision || "-";
+        document.getElementById("pRecall").textContent = d.performance.recall || "-";
+        document.getElementById("pF1").textContent = d.performance.f1 || "-";
+        document.getElementById("pAuc").textContent = d.performance.auc || "-";
+    }
+    // Table
+    if (d.customers && d.customers.length > 0) {
+        var tbody = document.querySelector("#churnTable tbody");
+        tbody.innerHTML = d.customers.map(function(c) {
+            var rClass = "risk-" + (c.risk || "MEDIUM");
+            return "<tr><td>" + (c.code||"-") + "</td><td><strong>" + (c.name||"-") + "</strong></td><td>" + (c.age||"-") + "</td><td>" + (c.membership||"-") + "</td><td>" + (c.city||"-") + "</td><td>" + (c.probability||"-") + "</td><td><span class='risk-badge " + rClass + "'>" + (c.risk||"-") + "</span></td><td>" + (c.factor||"-") + "</td></tr>";
+        }).join("");
+    }
+    // Factors
+    if (d.factors && d.factors.length > 0) {
+        document.getElementById("factorsList").innerHTML = d.factors.map(function(f) {
+            return '<div class="factor-card"><div class="fdesc">' + f + '</div></div>';
+        }).join("");
+    }
+}
+window.addEventListener("message", function(e) { if (e.data && e.data.type === "churnUpdate") loadData(); });
+</script>
 </body>
 </html>
