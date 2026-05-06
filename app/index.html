@@ -611,7 +611,7 @@ function showContentFrame(url) {
     const wrap = document.getElementById('contentFrameWrap');
     const loader = document.getElementById('frameLoader');
     const f = document.getElementById('contentFrame');
-    wrap.style.display = 'block';
+    wrap.style.display = 'block'; document.getElementById('main').scrollTop = 0; window.scrollTo(0,0);
     loader.classList.remove('hidden');
     f.src = url;
     f.onload = () => { loader.classList.add('hidden'); };
@@ -1001,8 +1001,27 @@ function checkAndLinkForecast(content, msgDiv) {
         });
     }
     // localStorage에 저장
+    // 점포명/상품명 추출 (AI 응답에서)
+    var storeNames = ["강남 본점","서초 지점","잠실 지점","여의도 지점","홍대 지점","부산 해운대점","대구 동성로점","인천 송도점","광주 충장로점","대전 둔산점"];
+    var detectedStore = "";
+    var detectedProduct = "";
+    storeNames.forEach(function(sn) { if (content.indexOf(sn) !== -1) detectedStore = sn; });
+    // 상품명은 따옴표 안이나 첫 문장에서 추출
+    // 상품명 추출 (간단한 방식 - 따옴표 안 텍스트)
+    var qMatch = content.match(/["\u201c\u300c]([^"\u201d\u300d]{2,30})["\u201d\u300d]/);
+    if (qMatch) detectedProduct = qMatch[1];
+    if (!detectedProduct && detectedStore) {
+        var idx2 = content.indexOf(detectedStore);
+        if (idx2 !== -1) {
+            var after = content.substring(idx2 + detectedStore.length, idx2 + detectedStore.length + 60);
+            var words = after.replace(/[^\uAC00-\uD7AF\u0020a-zA-Z0-9]/g, " ").trim().split(/\s+/);
+            if (words.length >= 1 && words[0].length >= 2) detectedProduct = words.slice(0, 3).join(" ").trim();
+        }
+    }
     const forecastData = {
-        meta: "AI 예측 결과 | " + new Date().toLocaleString("ko-KR"),
+        meta: "AI 예측 결과 | " + (detectedStore || "") + " / " + (detectedProduct || "") + " | " + new Date().toLocaleString("ko-KR"),
+        storeName: detectedStore,
+        productName: detectedProduct,
         kpi: {
             avg: avgForecast,
             trend: trendMatch ? trendMatch[1] : "-",

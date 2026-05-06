@@ -54,6 +54,10 @@
                 <h1>📊 수요 예측 결과</h1>
                 <span class="subtitle" id="forecastMeta"></span>
             </div>
+            <div id="forecastTarget" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;background:linear-gradient(135deg,#EBF3FE,#F3E8FF);border-radius:8px;border:1px solid #D6E4F0;">
+                <span style="font-size:0.8rem;color:#556B82;">🏪 점포: </span><strong id="targetStore" style="font-size:0.85rem;color:#1D2D3E;">-</strong>
+                <span style="margin-left:1.5rem;font-size:0.8rem;color:#556B82;">📦 상품: </span><strong id="targetProduct" style="font-size:0.85rem;color:#1D2D3E;">-</strong>
+            </div>
             
             <!-- KPI Cards -->
             <div class="kpi-row">
@@ -125,17 +129,38 @@
         var form = document.getElementById("poFormSection");
         if (form) form.style.display = "none";
     }
-    function createPurchaseOrder() {
+    async function createPurchaseOrder() {
         var form = document.getElementById("poFormSection");
         form.style.display = "block";
         // 점포/상품 목록 로드
-        loadPOOptions();
-        // 예측 수량 자동 채움
+        await loadPOOptions();
+        // 예측 데이터에서 점포/상품/수량 자동 채움
         var raw = localStorage.getItem("forecastData");
         if (raw) {
             var data = JSON.parse(raw);
-            var avgQty = data.kpi && data.kpi.avg ? Math.round(parseFloat(data.kpi.avg)) : 10;
-            document.getElementById("poQuantity").value = avgQty;
+            // 발주 수량 = 예측 첫 7일 합계 (주간 발주 기준)
+            var qty7days = 10;
+            if (data.table && data.table.length > 0) {
+                var slice7 = data.table.slice(0, 7);
+                qty7days = Math.round(slice7.reduce(function(s, r) { return s + r.forecast; }, 0));
+            } else if (data.kpi && data.kpi.avg) {
+                qty7days = Math.round(parseFloat(data.kpi.avg) * 7);
+            }
+            document.getElementById("poQuantity").value = qty7days;
+            // 점포 자동 선택
+            if (data.storeName) {
+                var stSel = document.getElementById("poStore");
+                for (var i = 0; i < stSel.options.length; i++) {
+                    if (stSel.options[i].text.indexOf(data.storeName) !== -1) { stSel.selectedIndex = i; break; }
+                }
+            }
+            // 상품 자동 선택
+            if (data.productName) {
+                var prSel = document.getElementById("poProduct");
+                for (var i = 0; i < prSel.options.length; i++) {
+                    if (prSel.options[i].text.indexOf(data.productName) !== -1) { prSel.selectedIndex = i; break; }
+                }
+            }
         }
         form.scrollIntoView({ behavior: "smooth" });
     }
@@ -209,6 +234,12 @@
     function renderForecast(data) {
         // Meta
         document.getElementById('forecastMeta').textContent = data.meta || '';
+        // 점포/상품 표시
+        if (data.storeName || data.productName) {
+            document.getElementById('forecastTarget').style.display = 'block';
+            document.getElementById('targetStore').textContent = data.storeName || '-';
+            document.getElementById('targetProduct').textContent = data.productName || '-';
+        }
         
         // KPI
         if (data.kpi) {
