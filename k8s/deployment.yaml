@@ -21,7 +21,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: store-pjt
-          image: "ghcr.io/dohyun-mun/store-pjt:v9-fixes"
+          image: "ghcr.io/dohyun-mun/store-pjt:latest"
           imagePullPolicy: Always
           ports:
             - containerPort: 4004
