@@ -1,14 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════
- * Supply Chain Graph - 3탭 (네트워크 / 상품공급 / 재고상태)
+ * Supply Chain Graph - 위험 경로 강조 네트워크
  * ═══════════════════════════════════════════════════════════════ */
-var scCurrentOption = 'N';
 var scNetwork = null;
-var scProductsCache = [];
+var scRiskOnly = true;
 
 // 메인 진입점
-async function loadSupplyChainGraph() {
-    await loadProductDropdown();
-    document.getElementById('scProductSelect').style.display = 'none';
+async function loadSupplyChainGraph(riskOnly) {
+    if (riskOnly !== undefined) scRiskOnly = riskOnly;
     await loadSupplyChainNetwork();
 }
 
@@ -112,30 +110,52 @@ async function loadSupplyChainNetwork() {
 
         var nodes = [], edges = [], nodeIds = new Set();
 
-        // 공급업체 노드
-        suppliers.forEach(function(s) {
-            nodes.push({id:"S_"+s.ID, label:"🟣 "+s.name, group:"supplier", shape:"box", color:{background:"#EDE7F6",border:"#7C4DFF"}, font:{color:"#4A148C",size:11,multi:true}, margin:8});
-            nodeIds.add("S_"+s.ID);
-        });
-
-        // 상품 노드 (재고 상태 색상 적용)
+        // 상품 노드 먼저 필터링 (위험 경로만 모드)
         var prodMap = {};
         products.forEach(function(p) { prodMap[p.ID] = p; });
         var connectedProducts = new Set();
+        var riskProducts = new Set(); // 부족/주의 상품
+
         Object.keys(productSuppliers).forEach(function(pId) {
             if (prodMap[pId]) {
                 var stockColor = getProductColor(pId);
                 var stockInfo = productStock[pId];
+                var isRisk = stockColor.border === "#D93025" || stockColor.border === "#FFC107";
+                if (isRisk) riskProducts.add(pId);
+
+                // 위험 경로만 모드일 때, 정상 상품은 스킵
+                if (scRiskOnly && !isRisk) return;
+
                 var label = prodMap[pId].name;
-                if (stockInfo) label += "\n(" + stockInfo.qty + "개)";
+                if (stockInfo) label += "\n(" + stockInfo.qty + ")";
                 nodes.push({id:"P_"+pId, label:label, group:"product", shape:"box", color:stockColor, font:{color:"#333",size:10,multi:true}, margin:7, title: prodMap[pId].name + (stockInfo ? " | 재고:"+stockInfo.qty+" | 기준:"+stockInfo.min : "")});
                 nodeIds.add("P_"+pId);
                 connectedProducts.add(pId);
             }
         });
 
-        // 점포 노드
+        // 공급업체 노드 (위험 경로만 모드: 관련 공급업체만)
+        var connectedSuppliers = new Set();
+        if (scRiskOnly) {
+            connectedProducts.forEach(function(pId) {
+                if (productSuppliers[pId]) productSuppliers[pId].forEach(function(sId) { connectedSuppliers.add(sId); });
+            });
+        }
+        suppliers.forEach(function(s) {
+            if (scRiskOnly && !connectedSuppliers.has(s.ID)) return;
+            nodes.push({id:"S_"+s.ID, label:"🟣 "+s.name, group:"supplier", shape:"box", color:{background:"#EDE7F6",border:"#7C4DFF"}, font:{color:"#4A148C",size:11,multi:true}, margin:8});
+            nodeIds.add("S_"+s.ID);
+        });
+
+        // 점포 노드 (위험 경로만 모드: 관련 점포만)
+        var connectedStoreIds = new Set();
+        if (scRiskOnly) {
+            storePrds.forEach(function(sp) {
+                if (connectedProducts.has(sp.product_ID)) connectedStoreIds.add(sp.store_ID);
+            });
+        }
         stores.forEach(function(st) {
+            if (scRiskOnly && !connectedStoreIds.has(st.ID)) return;
             nodes.push({id:"T_"+st.ID, label:"🏪 "+st.name, group:"store", shape:"box", color:{background:"#E3F2FD",border:"#1976D2"}, font:{color:"#1565C0",size:11,multi:true}, margin:8});
             nodeIds.add("T_"+st.ID);
         });

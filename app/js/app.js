@@ -83,6 +83,7 @@ function showContentFrame(url) {
     loader.classList.remove('hidden');
     f.src = url;
     f.onload = () => { loader.classList.add('hidden'); };
+    highlightMenuForUrl(url);
 }
 
 function toggleSidebar() {

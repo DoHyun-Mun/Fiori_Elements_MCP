@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>점포 상품별 재고 발주 관리 시스템</title>
+    <title>AI 점포 운영</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
@@ -22,8 +22,8 @@
             <svg viewBox="0 0 32 32" fill="none"><rect x="2" y="6" width="12" height="12" rx="3" fill="#0070F2"/><rect x="18" y="6" width="12" height="12" rx="3" fill="#0070F2" opacity="0.6"/><rect x="2" y="22" width="12" height="4" rx="2" fill="#0070F2" opacity="0.35"/><rect x="18" y="22" width="12" height="4" rx="2" fill="#0070F2" opacity="0.35"/></svg>
         </div>
         <div class="logo-title">
-            <span class="title-main">점포별 상품 재고 발주 관리</span>
-            <span class="title-sub">Inventory &amp; Order Management</span>
+            <span class="title-main">AI 점포 운영</span>
+            <span class="title-sub">Intelligent Store Operations</span>
         </div>
     </a>
     <div class="top-menu-group" id="topMenuBar"><span style="color:var(--text-tertiary);font-size:0.78rem;">로딩중...</span></div>
@@ -44,62 +44,105 @@
     <!-- Dashboard -->
     <div class="dashboard-view" id="welcomeView">
         <div class="dash-header">
-            <h2>📊 대시보드</h2>
+            <h2>🤖 AI 대시보드</h2>
             <span class="dash-date" id="dashDate"></span>
         </div>
 
-        <!-- KPI Cards -->
-        <div class="kpi-row" id="kpiRow">
-            <div class="kpi-card"><div class="kpi-icon-wrap" style="background:var(--info-light);color:var(--info)">🏷️</div><div class="kpi-body"><span class="kpi-value" id="kpi-products">-</span><span class="kpi-label">상품</span></div></div>
-            <div class="kpi-card"><div class="kpi-icon-wrap" style="background:var(--success-light);color:var(--success)">🏪</div><div class="kpi-body"><span class="kpi-value" id="kpi-stores">-</span><span class="kpi-label">점포</span></div></div>
-            <div class="kpi-card"><div class="kpi-icon-wrap" style="background:var(--warning-light);color:var(--warning)">📦</div><div class="kpi-body"><span class="kpi-value" id="kpi-inventories">-</span><span class="kpi-label">재고 항목</span></div></div>
-            <div class="kpi-card"><div class="kpi-icon-wrap" style="background:var(--danger-light);color:var(--danger)">📋</div><div class="kpi-body"><span class="kpi-value" id="kpi-purchaseorders">-</span><span class="kpi-label">발주</span></div></div>
-            <div class="kpi-card"><div class="kpi-icon-wrap" style="background:#F3E8FD;color:#7B2FF2">🤝</div><div class="kpi-body"><span class="kpi-value" id="kpi-suppliers">-</span><span class="kpi-label">공급업체</span></div></div>
-            <div class="kpi-card"><div class="kpi-icon-wrap" style="background:#E0F7FA;color:#00838F">👤</div><div class="kpi-body"><span class="kpi-value" id="kpi-customers">-</span><span class="kpi-label">고객</span></div></div>
-        </div>
-
-        <!-- Chart Cards -->
-        <div class="chart-row">
-            <div class="chart-card">
-                <div class="chart-title"><span class="ct-icon">📈</span> 일별 매출 추이</div>
-                <div class="chart-wrap"><canvas id="chartSales"></canvas></div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title"><span class="ct-icon">📦</span> 재고 추이</div>
-                <div class="chart-wrap"><canvas id="chartInventory"></canvas></div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title"><span class="ct-icon">📋</span> 발주 승인 현황</div>
-                <div class="chart-wrap"><canvas id="chartOrders"></canvas></div>
-            </div>
-        </div>
-
-        <!-- Shortcuts -->
-
-        <!-- Supply Chain Network Graph - 3탭 -->
-        <div class="chart-card" style="margin-bottom:1rem;">
-            <div class="chart-title" style="margin-bottom:0.2rem;">
-                <span class="ct-icon">🔗</span> 공급망 네트워크 (Supply Chain)
-            </div>
-            <div class="sc-toolbar">
-                <button class="sc-option-btn active" id="scBtnN" onclick="switchSupplyChainOption('N')">🔗 네트워크</button>
-                <button class="sc-option-btn" id="scBtnA" onclick="switchSupplyChainOption('A')">🌳 상품공급</button>
-                <button class="sc-option-btn" id="scBtnB" onclick="switchSupplyChainOption('B')">📊 재고상태</button>
-                <select class="sc-select" id="scProductSelect" style="display:none" onchange="loadSupplyChainOptionA(this.value)">
-                    <option value="">-- 상품 선택 --</option>
-                </select>
-                <select class="sc-select" id="scStoreSelect" style="display:none" onchange="loadSupplyChainOptionB(this.value)">
-                    <option value="">-- 점포 선택 --</option>
-                </select>
-                <div class="sc-legend" id="scLegend">
-                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#7C4DFF;"></span> 공급업체</span>
-                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#FFC107;"></span> 자재</span>
-                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#1976D2;"></span> 상품</span>
-                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#43A047;"></span> 점포</span>
+        <!-- STRIP 1: 동적 KPI 카드 -->
+        <div class="kpi-row kpi-row-4" id="kpiRow">
+            <div class="kpi-card kpi-dynamic kpi-clickable" onclick="showContentFrame('/dailysales/webapp/index.html')" title="일별 매출 상세 보기">
+                <div class="kpi-icon-wrap" style="background:var(--info-light);color:var(--info)">💰</div>
+                <div class="kpi-body">
+                    <span class="kpi-value" id="kpi-revenue">-</span>
+                    <span class="kpi-label">오늘 매출</span>
+                    <span class="kpi-change" id="kpi-revenue-change"></span>
                 </div>
             </div>
-            <div id="supplyChainGraph" style="width:100%;height:350px;border:1px solid var(--border-light);border-radius:8px;background:#FAFBFC;"></div>
+            <div class="kpi-card kpi-dynamic kpi-clickable" onclick="showContentFrame('/inventories/webapp/index.html')" title="재고 관리 상세 보기">
+                <div class="kpi-icon-wrap" style="background:var(--success-light);color:var(--success)">🏥</div>
+                <div class="kpi-body">
+                    <span class="kpi-value" id="kpi-health">-</span>
+                    <span class="kpi-label">재고 건전성</span>
+                    <span class="kpi-change" id="kpi-health-change"></span>
+                </div>
+            </div>
+            <div class="kpi-card kpi-dynamic kpi-clickable" onclick="showContentFrame('/orderrecommendations/webapp/index.html')" title="AI 발주 추천 보기">
+                <div class="kpi-icon-wrap" style="background:var(--danger-light);color:var(--danger)">🚨</div>
+                <div class="kpi-body">
+                    <span class="kpi-value" id="kpi-stockout">-</span>
+                    <span class="kpi-label">결품 위험</span>
+                    <span class="kpi-sublabel">즉시 조치 →</span>
+                </div>
+            </div>
+            <div class="kpi-card kpi-dynamic kpi-clickable" onclick="showContentFrame('/purchaseorders/webapp/index.html')" title="발주 승인 관리">
+                <div class="kpi-icon-wrap" style="background:var(--warning-light);color:var(--warning)">📋</div>
+                <div class="kpi-body">
+                    <span class="kpi-value" id="kpi-pending">-</span>
+                    <span class="kpi-label">발주 대기</span>
+                    <span class="kpi-sublabel">승인 필요 →</span>
+                </div>
+            </div>
         </div>
+
+        <!-- STRIP 2: AI 인사이트 카드 -->
+        <div class="ai-insights-section">
+            <div class="section-title"><span class="ct-icon">🤖</span> 오늘의 AI 인사이트</div>
+            <div class="ai-insights-row" id="aiInsightsRow">
+                <div class="ai-insight-card skeleton">로딩 중...</div>
+            </div>
+        </div>
+
+        <!-- STRIP 3: 매출 트렌드 + 점포 재고 건전성 -->
+        <div class="chart-row chart-row-2">
+            <div class="chart-card">
+                <div class="chart-title"><span class="ct-icon">📈</span> 매출 트렌드 + AI 예측</div>
+                <div class="chart-wrap" style="min-height:180px;max-height:220px;"><canvas id="chartSalesForecast"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title"><span class="ct-icon">🗺️</span> 점포별 재고 건전성</div>
+                <div class="store-health-grid" id="storeHealthGrid">
+                    <div class="skeleton">로딩 중...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STRIP 4: 발주 추천 + 이상 탐지 -->
+        <div class="chart-row chart-row-2">
+            <div class="chart-card">
+                <div class="chart-title"><span class="ct-icon">🎯</span> AI 발주 추천 Top 5</div>
+                <div class="recommendation-list" id="orderRecList">
+                    <div class="skeleton">로딩 중...</div>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title"><span class="ct-icon">🔍</span> 이상 탐지 (오늘)</div>
+                <div class="anomaly-list" id="anomalyList">
+                    <div class="skeleton">로딩 중...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STRIP 5: 공급망 네트워크 (간소화) -->
+        <div class="chart-card" style="margin-bottom:1rem;">
+            <div class="chart-title" style="margin-bottom:0.2rem;">
+                <span class="ct-icon">🔗</span> 공급망 네트워크
+                <label class="sc-toggle-label" style="margin-left:auto;font-size:0.7rem;font-weight:500;">
+                    <input type="checkbox" id="scRiskOnly" checked onchange="toggleRiskOnly(this.checked)"> 위험 경로만
+                </label>
+            </div>
+            <div class="sc-toolbar">
+                <div class="sc-legend" id="scLegend">
+                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#7C4DFF;"></span> 공급업체</span>
+                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#43A047;"></span> 정상</span>
+                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#FFC107;"></span> 주의</span>
+                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#D93025;"></span> 부족</span>
+                    <span class="sc-legend-item"><span class="sc-legend-dot" style="background:#1976D2;"></span> 점포</span>
+                </div>
+            </div>
+            <div id="supplyChainGraph" style="width:100%;height:300px;border:1px solid var(--border-light);border-radius:8px;background:#FAFBFC;"></div>
+        </div>
+
+        <!-- 바로가기 -->
         <div class="shortcut-section">
             <h3>⚡ 바로가기</h3>
             <div class="shortcut-row" id="shortcutGrid"></div>

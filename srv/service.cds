@@ -247,4 +247,54 @@ service InventoryService @(path: '/inventory') {
   @odata.draft.enabled
   entity StoreReceipts as projection on db.StoreReceipts;
   entity StoreReceiptItems as projection on db.StoreReceiptItems;
+
+  // ═══════════════════════════════════════════════════════════════
+  // AI 대시보드 전용 Function Imports
+  // ═══════════════════════════════════════════════════════════════
+
+  /** 대시보드 동적 KPI (매출, 재고건전성, 결품위험, 발주대기) */
+  function getDashboardKPIs() returns {
+    todayRevenue: Decimal(15,2);
+    revenueChange: Decimal(5,2);
+    healthScore: Integer;
+    healthChange: Integer;
+    stockoutRisk: Integer;
+    pendingOrders: Integer;
+  };
+
+  /** AI 인사이트 카드 (긴급/주의/기회/통찰/추천) */
+  function getAIInsights() returns array of {
+    type: String(20);
+    severity: String(10);
+    title: String(200);
+    description: String(500);
+    metric1Label: String(50);
+    metric1Value: String(50);
+    metric2Label: String(50);
+    metric2Value: String(50);
+    actionLabel: String(50);
+    actionUrl: String(200);
+    store: String(100);
+    product: String(100);
+  };
+
+  /** 점포별 건전성 점수 */
+  function getStoreHealthScores() returns array of {
+    storeId: String(36);
+    storeName: String(200);
+    city: String(100);
+    score: Integer;
+    status: String(10);
+    stockoutCount: Integer;
+    totalProducts: Integer;
+  };
+
+  /** 매출 트렌드 + AI 예측 결합 데이터 */
+  function getSalesForecastTrend() returns array of {
+    date: String(10);
+    actual: Decimal(15,2);
+    forecast: Decimal(15,2);
+    confidenceLow: Decimal(15,2);
+    confidenceHigh: Decimal(15,2);
+  };
 }

@@ -242,6 +242,251 @@ module.exports = cds.service.impl(async function () {
 
 
   // ════════════════════════════════════════════════════════════════════
+  // AI 대시보드 Function Imports
+  // ════════════════════════════════════════════════════════════════════
+
+  /**
+   * getDashboardKPIs - 동적 KPI (매출, 재고건전성, 결품위험, 발주대기)
+   */
+  this.on('getDashboardKPIs', async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    // 오늘 매출
+    let todayRevenue = 0, yesterdayRevenue = 0;
+    try {
+      const todaySales = await SELECT.from('com.inventory.DailySales').where({ salesDate: today });
+      todayRevenue = todaySales.reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
+      const yesterdaySales = await SELECT.from('com.inventory.DailySales').where({ salesDate: yesterday });
+      yesterdayRevenue = yesterdaySales.reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
+    } catch(e) {
+      // 오늘 데이터 없으면 가장 최근 데이터 사용
+      const recent = await SELECT.from('com.inventory.DailySales').orderBy({ salesDate: 'desc' }).limit(50);
+      if (recent.length > 0) {
+        const latestDate = recent[0].salesDate;
+        const prevDate = new Date(new Date(latestDate).getTime() - 86400000).toISOString().split('T')[0];
+        todayRevenue = recent.filter(r => r.salesDate === latestDate).reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
+        yesterdayRevenue = recent.filter(r => r.salesDate === prevDate).reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
+      }
+    }
+    const revenueChange = yesterdayRevenue > 0 ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue * 100) : 0;
+
+    // 재고 건전성 점수 (가용재고/최소재고 비율 평균 → 100점 만점)
+    const inventories = await SELECT.from('com.inventory.Inventories');
+    let healthSum = 0, healthCount = 0;
+    let stockoutRisk = 0;
+    inventories.forEach(inv => {
+      const avail = inv.quantity - (inv.reservedQty || 0);
+      const minS = inv.minStock || 1;
+      const ratio = avail / minS;
+      if (ratio < 0.5) stockoutRisk++;
+      healthSum += Math.min(ratio, 2.0); // 캡 2.0
+      healthCount++;
+    });
+    const healthScore = healthCount > 0 ? Math.round((healthSum / healthCount) * 50) : 85;
+
+    // 발주 대기 (Submitted 상태)
+    const pendingResult = await SELECT.from('com.inventory.PurchaseOrders').where({ status: 'Submitted' });
+    const pendingOrders = pendingResult.length;
+
+    return {
+      todayRevenue: todayRevenue,
+      revenueChange: Math.round(revenueChange * 10) / 10,
+      healthScore: Math.min(100, healthScore),
+      healthChange: -3, // 전일 대비 변화 (시뮬레이션)
+      stockoutRisk: stockoutRisk,
+      pendingOrders: pendingOrders
+    };
+  });
+
+  /**
+   * getAIInsights - AI 인사이트 카드 (최대 5개)
+   */
+  this.on('getAIInsights', async () => {
+    const insights = [];
+
+    // 1. 결품 임박 (OrderRecommendations HIGH)
+    const highRecs = await SELECT.from('com.inventory.OrderRecommendations')
+      .where({ priority: 'HIGH', status: 'Pending' })
+      .limit(3);
+
+    for (const rec of highRecs) {
+      const store = await SELECT.one.from('com.inventory.Stores').where({ ID: rec.store_ID });
+      const product = await SELECT.one.from('com.inventory.Products').where({ ID: rec.product_ID });
+      if (store && product) {
+        insights.push({
+          type: 'STOCKOUT',
+          severity: 'HIGH',
+          title: `${store.name} '${product.name}' 결품 임박`,
+          description: `현재고 ${rec.currentStock}개, 7일 예측수요 ${Math.round(rec.forecastDemand)}개`,
+          metric1Label: '현재고',
+          metric1Value: `${rec.currentStock}개`,
+          metric2Label: '예측수요(7일)',
+          metric2Value: `${Math.round(rec.forecastDemand)}개`,
+          actionLabel: '즉시 발주 추천 보기',
+          actionUrl: '/orderrecommendations/webapp/index.html',
+          store: store.name,
+          product: product.name
+        });
+      }
+    }
+
+    // 2. 매출 이상 탐지 (SalesAnomalies HIGH)
+    const highAnomalies = await SELECT.from('com.inventory.SalesAnomalies')
+      .where({ severity: 'HIGH' })
+      .orderBy({ detectedAt: 'desc' })
+      .limit(2);
+
+    for (const anom of highAnomalies) {
+      const store = await SELECT.one.from('com.inventory.Stores').where({ ID: anom.store_ID });
+      const product = await SELECT.one.from('com.inventory.Products').where({ ID: anom.product_ID });
+      if (store && product) {
+        const isSpike = anom.anomalyType === 'SPIKE';
+        insights.push({
+          type: isSpike ? 'OPPORTUNITY' : 'ALERT',
+          severity: isSpike ? 'MEDIUM' : 'HIGH',
+          title: isSpike
+            ? `${store.name} ${anom.metricName} 급증 감지 (+${Math.round(Math.abs(anom.deviation))})`
+            : `${store.name} ${anom.metricName} 급락 감지 (${Math.round(anom.deviation)})`,
+          description: `실제: ${Math.round(anom.actualValue)} / 예측: ${Math.round(anom.expectedValue)} (Z-Score: ${parseFloat(anom.zScore).toFixed(1)})`,
+          metric1Label: '실제값',
+          metric1Value: String(Math.round(anom.actualValue)),
+          metric2Label: 'Z-Score',
+          metric2Value: parseFloat(anom.zScore).toFixed(1),
+          actionLabel: '상세 분석 보기',
+          actionUrl: '/salesanomalies/webapp/index.html',
+          store: store.name,
+          product: product.name
+        });
+      }
+    }
+
+    // 3. 발주 추천 요약
+    const pendingRecs = await SELECT.from('com.inventory.OrderRecommendations')
+      .where({ status: 'Pending' });
+    if (pendingRecs.length > 0) {
+      const totalQty = pendingRecs.reduce((s, r) => s + (r.recommendedQty || 0), 0);
+      insights.push({
+        type: 'RECOMMEND',
+        severity: 'LOW',
+        title: `AI 발주 추천 ${pendingRecs.length}건 대기 중`,
+        description: `총 추천 수량: ${totalQty}개, HIGH ${pendingRecs.filter(r=>r.priority==='HIGH').length}건 포함`,
+        metric1Label: '추천 건수',
+        metric1Value: `${pendingRecs.length}건`,
+        metric2Label: '총 수량',
+        metric2Value: `${totalQty}개`,
+        actionLabel: '발주 추천 검토',
+        actionUrl: '/orderrecommendations/webapp/index.html',
+        store: '전체',
+        product: '복수 상품'
+      });
+    }
+
+    // 우선순위 정렬: HIGH > MEDIUM > LOW
+    const sevOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    insights.sort((a, b) => (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9));
+
+    return insights.slice(0, 5);
+  });
+
+  /**
+   * getStoreHealthScores - 점포별 건전성 점수
+   */
+  this.on('getStoreHealthScores', async () => {
+    const stores = await SELECT.from('com.inventory.Stores').where({ isActive: true, storeType: 'Store' });
+    const inventories = await SELECT.from('com.inventory.Inventories');
+
+    // 점포별 재고 집계
+    const storeInvMap = {};
+    inventories.forEach(inv => {
+      const sid = inv.store_ID;
+      if (!sid) return;
+      if (!storeInvMap[sid]) storeInvMap[sid] = { items: 0, stockoutRisk: 0, healthSum: 0 };
+      storeInvMap[sid].items++;
+      const avail = (inv.quantity || 0) - (inv.reservedQty || 0);
+      const minS = inv.minStock || 1;
+      const ratio = avail / minS;
+      if (ratio < 0.5) storeInvMap[sid].stockoutRisk++;
+      storeInvMap[sid].healthSum += Math.min(ratio, 2.0);
+    });
+
+    return stores.map(store => {
+      const inv = storeInvMap[store.ID] || { items: 0, stockoutRisk: 0, healthSum: 0 };
+      const score = inv.items > 0 ? Math.min(100, Math.round((inv.healthSum / inv.items) * 50)) : 85;
+      let status = 'GREEN';
+      if (score < 60) status = 'RED';
+      else if (score < 80) status = 'YELLOW';
+
+      return {
+        storeId: store.ID,
+        storeName: store.name,
+        city: store.city || '',
+        score: score,
+        status: status,
+        stockoutCount: inv.stockoutRisk,
+        totalProducts: inv.items
+      };
+    }).sort((a, b) => a.score - b.score); // 점수 낮은 순 (위험한 것 먼저)
+  });
+
+  /**
+   * getSalesForecastTrend - 매출 실적 + AI 예측 결합
+   */
+  this.on('getSalesForecastTrend', async () => {
+    const result = [];
+
+    // 지난 7일 실적
+    const sales = await SELECT.from('com.inventory.DailySales')
+      .orderBy({ salesDate: 'desc' })
+      .limit(175); // 5점포 × 5상품 × 7일
+
+    const salesByDate = {};
+    sales.forEach(s => {
+      if (!salesByDate[s.salesDate]) salesByDate[s.salesDate] = 0;
+      salesByDate[s.salesDate] += parseFloat(s.revenue) || 0;
+    });
+
+    const actualDates = Object.keys(salesByDate).sort().slice(-7);
+    actualDates.forEach(d => {
+      result.push({
+        date: d,
+        actual: salesByDate[d],
+        forecast: null,
+        confidenceLow: null,
+        confidenceHigh: null
+      });
+    });
+
+    // 향후 7일 예측
+    const forecasts = await SELECT.from('com.inventory.DemandForecasts')
+      .orderBy({ forecastDate: 'asc' });
+
+    const forecastByDate = {};
+    forecasts.forEach(f => {
+      if (!forecastByDate[f.forecastDate]) {
+        forecastByDate[f.forecastDate] = { qty: 0, lo: 0, hi: 0 };
+      }
+      // forecastQty를 매출로 환산 (평균 단가 20000원 가정)
+      forecastByDate[f.forecastDate].qty += (parseFloat(f.forecastQty) || 0) * 20000;
+      forecastByDate[f.forecastDate].lo += (parseFloat(f.confidenceLow) || 0) * 20000;
+      forecastByDate[f.forecastDate].hi += (parseFloat(f.confidenceHigh) || 0) * 20000;
+    });
+
+    const forecastDates = Object.keys(forecastByDate).sort().slice(0, 7);
+    forecastDates.forEach(d => {
+      result.push({
+        date: d,
+        actual: null,
+        forecast: forecastByDate[d].qty,
+        confidenceLow: forecastByDate[d].lo,
+        confidenceHigh: forecastByDate[d].hi
+      });
+    });
+
+    return result;
+  });
+
+  // ════════════════════════════════════════════════════════════════════
   // Products - 안전재고 등 수정 안내
   // ════════════════════════════════════════════════════════════════════
   this.on('error', (err, req) => {
