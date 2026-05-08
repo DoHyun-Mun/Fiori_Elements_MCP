@@ -54,8 +54,8 @@
                 <div class="kpi-icon-wrap" style="background:var(--info-light);color:var(--info)">💰</div>
                 <div class="kpi-body">
                     <span class="kpi-value" id="kpi-revenue">-</span>
-                    <span class="kpi-label">오늘 매출</span>
-                    <span class="kpi-change" id="kpi-revenue-change"></span>
+                    <span class="kpi-label">최근 매출</span>
+                    <span class="kpi-change" id="kpi-revenue-change"></span>                    
                 </div>
             </div>
             <div class="kpi-card kpi-dynamic kpi-clickable" onclick="showContentFrame('/inventories/webapp/index.html')" title="재고 관리 상세 보기">
@@ -97,6 +97,7 @@
             <div class="chart-card">
                 <div class="chart-title"><span class="ct-icon">📈</span> 매출 트렌드 + AI 예측</div>
                 <div class="chart-wrap" style="min-height:180px;max-height:220px;"><canvas id="chartSalesForecast"></canvas></div>
+                <div id="forecastReason" style="display:none;margin-top:0.5rem;padding:0.5rem 0.75rem;background:#F8F9FB;border-radius:6px;font-size:0.7rem;line-height:1.5;border-left:3px solid #7B2FF2;"></div>
             </div>
             <div class="chart-card">
                 <div class="chart-title"><span class="ct-icon">🗺️</span> 점포별 재고 건전성</div>

@@ -3,275 +3,457 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>발주 추천 결과</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<title>AI 발주 추천</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#F5F6FA;color:#1D2D3E;padding:1.5rem;overflow-y:auto}
-.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem}
+.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap}
 .header h1{font-size:1.1rem;font-weight:700}
 .header .meta{font-size:0.75rem;color:#8396A8;margin-left:auto}
-.urgency-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;margin-left:0.5rem}
-.urgency-HIGH{background:#FCE8E6;color:#D93025;border:1px solid #F5C6CB}
-.urgency-MEDIUM{background:#FEF3E0;color:#E37400;border:1px solid #F5D5A0}
-.urgency-LOW{background:#E6F4EA;color:#188038;border:1px solid #B7E1CD}
-.target-bar{padding:0.6rem 1rem;background:linear-gradient(135deg,#1D2D3E,#2D4A6E);border-radius:10px;color:white;display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;font-size:0.8rem}
-.target-bar strong{font-size:0.9rem}
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1rem}
-.kpi{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:0.85rem;text-align:center}
-.kpi .val{font-size:1.4rem;font-weight:700;line-height:1.2}
-.kpi .lbl{font-size:0.68rem;color:#8396A8;margin-top:0.15rem}
-.kpi.danger .val{color:#D93025}
-.kpi.warn .val{color:#E37400}
-.kpi.info .val{color:#0070F2}
-.kpi.ok .val{color:#188038}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem}
-.card{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem}
-.card h3{font-size:0.82rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem}
-.card .item{display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid #F5F6FA;font-size:0.78rem}
-.card .item:last-child{border-bottom:none}
-.card .item .k{color:#556B82}
-.card .item .v{font-weight:600;color:#1D2D3E}
-.chart-card{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem}
-.chart-card h3{font-size:0.82rem;font-weight:600;margin-bottom:0.6rem}
-.chart-wrap{height:200px;position:relative}
-.reasons-card{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem}
-.reasons-card h3{font-size:0.82rem;font-weight:600;margin-bottom:0.6rem}
-.reason-item{padding:0.4rem 0;font-size:0.78rem;line-height:1.5;border-bottom:1px solid #F8F9FB}
-.reason-item:last-child{border-bottom:none}
-.judgment-banner{padding:1rem 1.25rem;border-radius:10px;margin-bottom:1rem;border:2px solid}
-.judgment-banner.HIGH{background:linear-gradient(135deg,#E6F4EA,#EBF3FE);border-color:#188038}
-.judgment-banner.MEDIUM{background:linear-gradient(135deg,#FEF3E0,#EBF3FE);border-color:#E37400}
+.summary-bar{padding:0.75rem 1rem;background:linear-gradient(135deg,#1D2D3E,#2D4A6E);border-radius:10px;color:white;display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;font-size:0.8rem;flex-wrap:wrap}
+.summary-bar strong{font-size:0.95rem}
+.filter-bar{display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap}
+.filter-btn{padding:0.35rem 0.75rem;border-radius:20px;font-size:0.7rem;font-weight:600;cursor:pointer;border:1.5px solid #E5E8ED;background:white;color:#556B82;transition:all 0.2s}
+.filter-btn:hover{border-color:#0070F2;color:#0070F2}
+.filter-btn.active{background:#0070F2;color:white;border-color:#0070F2}
+.table-card{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem;overflow-x:auto}
+.table-card h3{font-size:0.85rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem}
+table{width:100%;border-collapse:collapse;font-size:0.75rem;min-width:700px}
+th{background:#F0F2F5;padding:0.55rem 0.6rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED;white-space:nowrap}
+td{padding:0.5rem 0.6rem;border-bottom:1px solid #EEF1F5;white-space:nowrap}
+tr:hover td{background:#F8F9FB}
+.urg-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.62rem;font-weight:700}
+.urg-CRITICAL{background:#FCE8E6;color:#D93025}
+.urg-HIGH{background:#FEF3E0;color:#E37400}
+.urg-MEDIUM{background:#E8F0FE;color:#1A73E8}
+.urg-LOW{background:#E6F4EA;color:#188038}
+.analysis-section{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.analysis-section h3{font-size:0.85rem;font-weight:600;margin-bottom:0.6rem}
+.analysis-item{padding:0.5rem 0;border-bottom:1px solid #F5F6FA;font-size:0.78rem;line-height:1.6}
+.analysis-item:last-child{border-bottom:none}
+.analysis-item .product-name{font-weight:700;color:#1D2D3E}
+.analysis-item .detail{color:#556B82;margin-left:0.5rem}
+.judgment-banner{padding:1rem 1.25rem;border-radius:10px;margin-bottom:1rem;border:2px solid #188038;background:linear-gradient(135deg,#E6F4EA,#EBF3FE)}
 .judgment-banner h3{font-size:0.85rem;font-weight:700;margin-bottom:0.5rem}
-.judgment-banner .conclusion{font-size:0.8rem;line-height:1.6;color:#1D2D3E;margin-bottom:0.4rem}
-.judgment-banner .conf{font-size:0.75rem;color:#556B82}
-.judgment-banner .recommend{margin-top:0.4rem;font-size:0.8rem;font-weight:600;color:#0070F2}
-.action-bar{padding:1rem;background:linear-gradient(135deg,#FEF3E0,#FCE8E6);border-radius:10px;border:1px solid #F5D5A0;display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
-.action-bar .info{flex:1}
+.judgment-banner p{font-size:0.8rem;line-height:1.6;color:#1D2D3E;margin-bottom:0.3rem}
+.judgment-banner .conf{font-size:0.72rem;color:#556B82}
+.action-bar{padding:1rem;background:linear-gradient(135deg,#EBF3FE,#F3E8FF);border-radius:10px;border:1px solid #D6E4F0;display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+.action-bar .info{flex:1;min-width:200px}
 .action-bar .info .t{font-size:0.85rem;font-weight:700;margin-bottom:0.2rem}
 .action-bar .info .d{font-size:0.72rem;color:#556B82}
-.btn-primary{padding:0.55rem 1.2rem;background:linear-gradient(135deg,#E37400,#D93025);color:white;border:none;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer}
-.btn-secondary{padding:0.55rem 1.2rem;background:white;color:#E37400;border:1.5px solid #E37400;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer}
-#poForm{display:none;margin-bottom:1rem;padding:1rem;background:white;border:2px solid #E37400;border-radius:10px}
-#poForm h3{font-size:0.85rem;font-weight:700;color:#E37400;margin-bottom:0.75rem}
-#poForm .grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.75rem}
-#poForm label{font-size:0.7rem;color:#556B82;display:block;margin-bottom:0.2rem}
-#poForm select,#poForm input{width:100%;padding:0.45rem;border:1px solid #E5E8ED;border-radius:6px;font-size:0.78rem}
+.btn-primary{padding:0.55rem 1.2rem;background:linear-gradient(135deg,#0070F2,#6B4FBB);color:white;border:none;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer}
+.btn-primary:hover{opacity:0.9}
+#poResult{margin-top:0.75rem;font-size:0.8rem}
 .empty-state{text-align:center;padding:4rem 2rem;color:#8396A8}
 .empty-state .icon{font-size:3rem;margin-bottom:1rem}
+.select-all-row{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;font-size:0.75rem;color:#556B82}
 </style>
 </head>
 <body>
 <div id="emptyState" class="empty-state">
 <div class="icon">📋</div>
-<p>AI Chat에서 발주 추천을 요청하면<br>여기에 시각화 결과가 표시됩니다.</p>
+<p>AI Chat에서 발주 추천을 요청하면<br>여기에 결과가 표시됩니다.</p>
 <p style="margin-top:0.75rem;font-size:0.78rem;color:#B0B8C4;">예: "강남 본점 발주 추천해줘"</p>
 </div>
+
 <div id="resultView" style="display:none;">
 <div class="header">
 <h1>📋 AI 발주 추천</h1>
-<span class="urgency-badge" id="urgBadge">-</span>
 <span class="meta" id="recMeta"></span>
 </div>
-<div class="target-bar" id="targetBar">
-<span>🏪 <strong id="tStore">-</strong></span>
-<span>📦 <strong id="tProduct">-</strong></span>
-<span>🤖 <strong id="tModel">-</strong></span>
+
+<div class="summary-bar" id="summaryBar">
+<span>🏪 <strong id="sStore">-</strong></span>
+<span>📦 총 <strong id="sCount">0</strong>건</span>
+<span>💰 예상 비용: <strong id="sCost">-</strong></span>
 </div>
-<div class="kpi-row">
-<div class="kpi danger"><div class="val" id="kCurrentStock">-</div><div class="lbl">현재 재고</div></div>
-<div class="kpi warn"><div class="val" id="kRecommendQty">-</div><div class="lbl">추천 발주량</div></div>
-<div class="kpi info"><div class="val" id="kEstCost">-</div><div class="lbl">예상 비용</div></div>
-<div class="kpi ok"><div class="val" id="kStockDays">-</div><div class="lbl">재고 소진 예상</div></div>
+
+<!-- AI 종합 판단 배너 -->
+<div id="judgmentSection" style="display:none;padding:1rem 1.25rem;border-radius:10px;margin-bottom:1rem;border:2px solid #188038;background:linear-gradient(135deg,#E6F4EA,#EBF3FE);">
+<h3 style="font-size:0.9rem;font-weight:700;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem;">🤖 AI 종합 판단</h3>
+<p id="jConclusion" style="font-size:0.82rem;line-height:1.6;color:#1D2D3E;margin-bottom:0.4rem;">-</p>
+<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.4rem;">
+<div style="font-size:0.72rem;"><span style="color:#556B82;">ML 일평균:</span> <strong id="jML" style="color:#0070F2;">-</strong></div>
+<div style="font-size:0.72rem;"><span style="color:#556B82;">RPT-1 일평균:</span> <strong id="jRPT" style="color:#7B2FF2;">-</strong></div>
+<div style="font-size:0.72rem;"><span style="color:#556B82;">차이율:</span> <strong id="jDiff" style="color:#188038;">-</strong></div>
 </div>
-<div class="two-col">
-<div class="card">
-<h3>🧠 ML 예측 (Safety Stock + EOQ)</h3>
-<div class="item"><span class="k">현재 재고</span><span class="v" id="mlStock">-</span></div>
-<div class="item"><span class="k">안전 재고</span><span class="v" id="mlSafety">-</span></div>
-<div class="item"><span class="k">재주문 시점</span><span class="v" id="mlReorder">-</span></div>
-<div class="item"><span class="k">추천 발주 수량</span><span class="v" id="mlQty">-</span></div>
-<div class="item"><span class="k">예상 비용</span><span class="v" id="mlCost">-</span></div>
-<div class="item"><span class="k">긴급도</span><span class="v" id="mlUrg">-</span></div>
+<p style="font-size:0.72rem;color:#556B82;" id="jConfidence">-</p>
+<p id="jRecommend" style="font-weight:700;color:#0070F2;font-size:0.85rem;margin-top:0.3rem;">-</p>
 </div>
-<div class="card">
-<h3>🔮 RPT-1 AI 예측 (7일 수요)</h3>
-<div class="item"><span class="k">총 7일 예측 수량</span><span class="v" id="rptTotal">-</span></div>
-<div class="item"><span class="k">일 평균 예측 수량</span><span class="v" id="rptDaily">-</span></div>
-<div style="margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid #EEF1F5">
-<h3 style="font-size:0.78rem">📈 시계열 분석</h3>
-<div class="item"><span class="k">최근 7일 평균</span><span class="v" id="ts7">-</span></div>
-<div class="item"><span class="k">최근 30일 평균</span><span class="v" id="ts30">-</span></div>
-<div class="item"><span class="k">추세 변화율</span><span class="v" id="tsTrend">-</span></div>
+
+<!-- 외부 요인 (한 번만) -->
+<div id="infoCards" style="display:none;margin-bottom:1rem;">
+<div style="background:white;border:1px solid #E5E8ED;border-radius:10px;padding:0.85rem 1rem;">
+<h3 style="font-size:0.78rem;font-weight:600;margin-bottom:0.5rem;color:#556B82;">🌍 외부 요인 (오늘)</h3>
+<div id="extInfo" style="display:flex;flex-wrap:wrap;gap:0.35rem;"></div>
 </div>
 </div>
-</div>
-<div class="chart-card">
-<h3>📊 수요 예측 비교 (ML vs RPT-1)</h3>
-<div class="chart-wrap"><canvas id="compareChart"></canvas></div>
-</div>
-<div class="two-col">
-<div class="reasons-card">
-<h3>📝 발주 사유</h3>
-<div id="reasonsList"></div>
-</div>
-<div class="card">
-<h3>🌍 외부 요인</h3>
-<div class="item"><span class="k">요일</span><span class="v" id="extDay">-</span></div>
-<div class="item"><span class="k">계절</span><span class="v" id="extSeason">-</span></div>
-<div class="item"><span class="k">뉴스 트렌드</span><span class="v" id="extNews">-</span></div>
+
+<!-- 긴급도별 가이드 -->
+<div style="background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+<h3 style="font-size:0.85rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem;">🚦 긴급도별 대응 가이드</h3>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.6rem;">
+<div style="padding:0.6rem;background:#FCE8E6;border-radius:8px;border-left:4px solid #D93025;"><div style="font-size:0.75rem;font-weight:700;color:#D93025;">🔴 CRITICAL</div><div style="font-size:0.68rem;color:#556B82;margin-top:0.2rem;">즉시 발주 (24시간 내)<br>품절 임박, 매출 손실 발생 중</div></div>
+<div style="padding:0.6rem;background:#FEF3E0;border-radius:8px;border-left:4px solid #E37400;"><div style="font-size:0.75rem;font-weight:700;color:#E37400;">🟠 HIGH</div><div style="font-size:0.68rem;color:#556B82;margin-top:0.2rem;">1~2일 내 발주 필요<br>안전재고 근접, 주말 수요 대비</div></div>
+<div style="padding:0.6rem;background:#E8F0FE;border-radius:8px;border-left:4px solid #1A73E8;"><div style="font-size:0.75rem;font-weight:700;color:#1A73E8;">🔵 MEDIUM</div><div style="font-size:0.68rem;color:#556B82;margin-top:0.2rem;">이번 주 내 발주 검토<br>재고 여유 있으나 추세 상승</div></div>
 </div>
 </div>
-<div class="judgment-banner HIGH" id="judgmentBanner">
-<h3>🤖 AI 종합 판단</h3>
-<div class="conclusion" id="jConclusion">-</div>
-<div class="conf" id="jConfidence">-</div>
-<div class="recommend" id="jRecommend">-</div>
+
+<!-- Filter -->
+<div class="filter-bar" id="filterBar">
+<button class="filter-btn active" onclick="filterTable('ALL')">전체</button>
+<button class="filter-btn" onclick="filterTable('CRITICAL')">🔴 CRITICAL</button>
+<button class="filter-btn" onclick="filterTable('HIGH')">🟠 HIGH</button>
+<button class="filter-btn" onclick="filterTable('MEDIUM')">🔵 MEDIUM</button>
+<button class="filter-btn" onclick="filterTable('LOW')">🟢 LOW</button>
 </div>
+
+<!-- Table -->
+<div class="table-card">
+<h3>🛒 발주 추천 목록 (ML vs RPT-1 비교)</h3>
+<div class="select-all-row">
+<input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)" checked> <label for="selectAll">전체 선택</label>
+<span id="selectedCount" style="margin-left:auto;font-weight:600;color:#0070F2;">0건 선택</span>
+</div>
+<div style="overflow-x:auto;max-height:350px;overflow-y:auto;">
+<table>
+<thead><tr>
+<th style="width:30px"><input type="checkbox" checked disabled></th>
+<th>상품명</th><th>현재재고</th><th>ML수요</th><th>RPT수요</th><th>차이</th><th>추천수량</th><th>긴급도</th>
+</tr></thead>
+<tbody id="recTableBody"></tbody>
+</table>
+</div>
+</div>
+
+<!-- Batch Order Action -->
 <div class="action-bar">
-<div class="info"><div class="t">💡 다음 단계</div><div class="d">추천 결과를 기반으로 발주서를 생성하시겠습니까?</div></div>
-<button class="btn-primary" onclick="showPOForm()">📋 발주 생성</button>
-<button class="btn-secondary" onclick="viewInventory()">📦 재고 현황</button>
+<div class="info">
+<div class="t">💡 선택 항목 일괄 발주</div>
+<div class="d">체크된 상품을 한번에 발주서(PO)로 생성합니다.</div>
 </div>
-<div id="poForm">
-<h3>📋 발주 생성 (추천 기반 자동 채움)</h3>
-<div class="grid">
-<div><label>점포</label><select id="poStore"></select></div>
-<div><label>상품</label><select id="poProduct"></select></div>
-<div><label>발주 수량</label><input id="poQty" type="number"/><div id="qtyBasis" style="margin-top:0.3rem;font-size:0.65rem;color:#E37400;background:#FFF8F0;padding:0.4rem 0.6rem;border-radius:4px;display:none;"></div></div>
-<div><label>단가 (₩)</label><input id="poPrice" type="number" value="20000"/></div>
+<button class="btn-primary" onclick="batchCreatePO()">📋 선택 항목 일괄 발주 생성</button>
 </div>
-<div style="display:flex;gap:0.6rem">
-<button onclick="submitPO()" style="padding:0.5rem 1.2rem;background:#E37400;color:white;border:none;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer">✅ 발주 생성</button>
-<button onclick="document.getElementById('poForm').style.display='none'" style="padding:0.5rem 0.8rem;background:#F0F2F5;color:#556B82;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer">취소</button>
-</div>
-<div id="poResult" style="margin-top:0.6rem;font-size:0.78rem"></div>
+<div id="poResult"></div>
+
+<!-- 상품별 발주 사유 분석 카드 -->
+<div class="analysis-section" id="analysisSection" style="display:none;background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+<h3 style="font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.4rem;">📝 상품별 발주 사유 분석</h3>
+<div id="analysisList"></div>
 </div>
 </div>
+
 <script>
-var chartInst = null;
-function viewInventory() {
-    if (window.parent !== window) window.parent.postMessage({type:"navigateTo",url:"/inventories/webapp/index.html"},"*");
-    else window.location.href = "/inventories/webapp/index.html";
-}
-function showPOForm() {
-    var f = document.getElementById("poForm"); f.style.display = "block"; loadOpts();
-    var raw = localStorage.getItem("orderRecommendationData");
-    if (raw) { var d = JSON.parse(raw); var recQty = d.ml ? d.ml.recommendedQty : 10; document.getElementById("poQty").value = recQty;
-    // Show calculation basis
-    var basisDiv = document.getElementById("qtyBasis");
-    if (basisDiv && d.ml) {
-      var parts = [];
-      if (d.timeseries && d.timeseries.avg7d) parts.push("일평귀 수요: " + d.timeseries.avg7d.toFixed(1) + "개/일");
-      if (d.rpt && d.rpt.totalDemand7d) parts.push("7일 예측 합계: " + d.rpt.totalDemand7d.toFixed(1) + "개");
-      if (d.ml.currentStock) parts.push("현재 재고: " + d.ml.currentStock + "개");
-      if (d.ml.urgency) parts.push("긴급도: " + d.ml.urgency);
-      basisDiv.innerHTML = "📈 <b>산출 균거:</b> " + (d.ml.model || "ML") + "<br><span style='color:#556B82;'>" + parts.join(" | ") + "<br>추천 발주량 = " + recQty + "개</span>";
-      basisDiv.style.display = "block";
-    }
-    setTimeout(function(){ var ss=document.getElementById("poStore"); for(var i=0;i<ss.options.length;i++){if(ss.options[i].text.indexOf(d.storeName||"")!==-1){ss.selectedIndex=i;break;}} },300); }
-    f.scrollIntoView({behavior:"smooth"});
-}
-async function loadOpts() {
-    try { var s=await fetch("/inventory/Stores?$top=30&$select=ID,name&$filter=isActive eq true"); var p=await fetch("/inventory/Products?$top=100&$select=ID,name&$filter=isActive eq true"); var stores=(await s.json()).value||[]; var products=(await p.json()).value||[]; document.getElementById("poStore").innerHTML=stores.map(function(x){return'<option value="'+x.ID+'">'+x.name+'</option>';}).join(""); document.getElementById("poProduct").innerHTML=products.map(function(x){return'<option value="'+x.ID+'">'+x.name+'</option>';}).join(""); } catch(e){}
-}
-async function submitPO() {
-    var sid=document.getElementById("poStore").value,pid=document.getElementById("poProduct").value,qty=parseInt(document.getElementById("poQty").value)||10,price=parseInt(document.getElementById("poPrice").value)||20000;
-    var r=document.getElementById("poResult"); r.innerHTML='<span style="color:#556B82">⏳ 생성 중...</span>';
-    try { var res=await fetch("/inventory/PurchaseOrders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({product_ID:pid,store_ID:sid,quantity:qty,unitPrice:price})}); if(res.ok){var po=await res.json();r.innerHTML='<span style="color:#188038;font-weight:600">✅ 발주 생성 완료! '+(po.poNumber||"")+" (수량:"+qty+")</span>";}else{var e=await res.text();r.innerHTML='<span style="color:#D93025">❌ 실패: '+e.substring(0,80)+"</span>";}} catch(e){r.innerHTML='<span style="color:#D93025">❌ 오류: '+e.message+"</span>";}
-}
+var recData = null;
+var currentFilter = "ALL";
+
 function loadData() {
     var raw = localStorage.getItem("orderRecommendationData");
     if (!raw) return;
-    try { var d = JSON.parse(raw); document.getElementById("emptyState").style.display="none"; document.getElementById("resultView").style.display="block"; render(d); } catch(e){}
+    try {
+        recData = JSON.parse(raw);
+        document.getElementById("emptyState").style.display = "none";
+        document.getElementById("resultView").style.display = "block";
+        render(recData);
+    } catch(e) { console.error("Parse error:", e); }
 }
+
 function render(d) {
+    // Meta
     document.getElementById("recMeta").textContent = d.meta || "";
-    document.getElementById("tStore").textContent = d.storeName || "-";
-    document.getElementById("tProduct").textContent = d.productName || "-";
-    document.getElementById("tModel").textContent = (d.ml && d.ml.model) ? d.ml.model.substring(0,40) : "AI";
-    // urgency badge
-    var p = d.priority || "MEDIUM";
-    var badge = document.getElementById("urgBadge");
-    badge.textContent = p === "HIGH" ? "🔴 긴급" : p === "LOW" ? "🟢 낮음" : "🟠 보통";
-    badge.className = "urgency-badge urgency-" + p;
-    // KPI
-    if (d.ml) {
-        document.getElementById("kCurrentStock").textContent = d.ml.currentStock ? d.ml.currentStock + "개" : "-";
-        document.getElementById("kRecommendQty").textContent = d.ml.recommendedQty ? d.ml.recommendedQty + "개" : "-";
-        document.getElementById("kEstCost").textContent = d.ml.estimatedCost || "-";
-        document.getElementById("kStockDays").textContent = d.ml.stockDays || "-";
-        document.getElementById("mlStock").textContent = d.ml.currentStock ? d.ml.currentStock + "개" : "-";
-        document.getElementById("mlSafety").textContent = d.ml.safetyStock ? d.ml.safetyStock.toFixed(1) + "개" : "-";
-        document.getElementById("mlReorder").textContent = d.ml.reorderPoint ? d.ml.reorderPoint.toFixed(1) + "개" : "-";
-        document.getElementById("mlQty").textContent = d.ml.recommendedQty ? d.ml.recommendedQty + "개" : "-";
-        document.getElementById("mlCost").textContent = d.ml.estimatedCost || "-";
-        document.getElementById("mlUrg").textContent = d.ml.urgency || "-";
+
+    // Store name: from data or extract from meta
+    var storeName = d.storeName || "";
+    if (!storeName && d.meta) {
+        // Try to extract store name from meta like "AI 발주 추천 | 강남 본점 | 2026..."
+        var parts = d.meta.split("|").map(function(s) { return s.trim(); });
+        if (parts.length >= 2) storeName = parts[1];
     }
-    // RPT
-    if (d.rpt) {
-        document.getElementById("rptTotal").textContent = d.rpt.totalDemand7d ? d.rpt.totalDemand7d.toFixed(1) + "개" : "-";
-        document.getElementById("rptDaily").textContent = d.rpt.dailyAvg ? d.rpt.dailyAvg.toFixed(1) + "개/일" : "-";
+    document.getElementById("sStore").textContent = storeName || "\uC804\uCCB4";
+
+    // External factors - chip/pill style
+    if (d.external && (d.external.day || d.external.season || d.external.news || d.external.weather)) {
+        document.getElementById("infoCards").style.display = "block";
+        var chips = [];
+        var chipStyle = 'display:inline-block;padding:4px 10px;background:#F0F2F5;border-radius:16px;font-size:0.68rem;color:#1D2D3E;';
+        if (d.external.weather) chips.push('<span style="' + chipStyle + '">\uD83C\uDF24\uFE0F ' + d.external.weather + '</span>');
+        if (d.external.day) chips.push('<span style="' + chipStyle + '">\uD83D\uDCC5 ' + d.external.day + '</span>');
+        if (d.external.season) chips.push('<span style="' + chipStyle + 'background:#E8F5E9;">\uD83C\uDF38 ' + d.external.season + '</span>');
+        if (d.external.payday) chips.push('<span style="' + chipStyle + 'background:#EBF3FE;">\uD83D\uDCB0 ' + d.external.payday + '</span>');
+        if (d.external.holiday) chips.push('<span style="' + chipStyle + 'background:#FEF3E0;">\uD83D\uDDD3\uFE0F ' + d.external.holiday + '</span>');
+        if (d.external.news) chips.push('<span style="' + chipStyle + 'background:#F3E8FF;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">\uD83D\uDCF0 ' + d.external.news.substring(0, 40) + '</span>');
+        document.getElementById("extInfo").innerHTML = chips.join("") || "-";
     }
-    // Timeseries
-    if (d.timeseries) {
-        document.getElementById("ts7").textContent = d.timeseries.avg7d ? d.timeseries.avg7d.toFixed(1) + "개/일" : "-";
-        document.getElementById("ts30").textContent = d.timeseries.avg30d ? d.timeseries.avg30d.toFixed(1) + "개/일" : "-";
-        document.getElementById("tsTrend").textContent = d.timeseries.trend || "-";
+
+    // Table data - support both new (d.table) and legacy (d.reasons) formats
+    var items = d.table || [];
+
+    // Legacy format: parse reasons to build table
+    if (items.length === 0 && d.reasons && d.reasons.length > 0) {
+        items = parseReasonsToTable(d);
     }
-    // External
-    if (d.external) {
-        document.getElementById("extDay").textContent = d.external.day || "-";
-        document.getElementById("extSeason").textContent = d.external.season || "-";
-        document.getElementById("extNews").textContent = d.external.news || "-";
-    }
-    // Reasons
-    if (d.reasons && d.reasons.length > 0) {
-        document.getElementById("reasonsList").innerHTML = d.reasons.map(function(r){ return '<div class="reason-item">' + r + '</div>'; }).join("");
-    }
-    // AI Judgment
-    if (d.aiJudgment) {
+
+    var totalCost = "-";
+    if (d.summary && d.summary.totalCost) totalCost = d.summary.totalCost;
+    else if (d.ml && d.ml.estimatedCost) totalCost = d.ml.estimatedCost;
+
+    document.getElementById("sCount").textContent = items.length;
+    document.getElementById("sCost").textContent = totalCost;
+
+    // Store parsed table back for filtering
+    d.table = items;
+    renderTable(items, "ALL");
+
+    // AI Judgment (상단에 크게 표시)
+    if (d.aiJudgment && d.aiJudgment.conclusion) {
+        document.getElementById("judgmentSection").style.display = "block";
         document.getElementById("jConclusion").textContent = d.aiJudgment.conclusion || "-";
         document.getElementById("jConfidence").textContent = "신뢰도: " + (d.aiJudgment.confidence || "-");
-        document.getElementById("jRecommend").textContent = "권고: " + (d.aiJudgment.recommendation || "-");
-        var banner = document.getElementById("judgmentBanner");
-        if (/HIGH/i.test(d.aiJudgment.confidence)) banner.className = "judgment-banner HIGH";
-        else banner.className = "judgment-banner MEDIUM";
+        document.getElementById("jRecommend").textContent = "✅ 권고: " + (d.aiJudgment.recommendation || "-");
+        // ML/RPT1 수치
+        if (d.timeseries) {
+            var jML = document.getElementById("jML"); if(jML) jML.textContent = d.timeseries.avg7d ? d.timeseries.avg7d+"개/일" : "-";
+            var jRPT = document.getElementById("jRPT"); if(jRPT) jRPT.textContent = d.rpt && d.rpt.dailyAvg ? d.rpt.dailyAvg+"개/일" : "-";
+            var jDiff = document.getElementById("jDiff"); if(jDiff) jDiff.textContent = d.timeseries.trend || "-";
+        }
     }
-    // Chart
-    renderChart(d);
+
+    // 외부 요인: analysis의 첫 항목에서 추출 (한 번만)
+    var analysisData = d.analysis || [];
+    if (analysisData.length > 0 && analysisData[0].externalFactors) {
+        var ef = analysisData[0].externalFactors;
+        if (Object.keys(ef).length > 0) {
+            document.getElementById("infoCards").style.display = "block";
+            var chipStyle = 'display:inline-block;padding:4px 10px;background:#F0F2F5;border-radius:16px;font-size:0.68rem;color:#1D2D3E;';
+            var chips = [];
+            if (ef["요일"]) chips.push('<span style="'+chipStyle+'">📅 '+ef["요일"]+'</span>');
+            if (ef["주말효과"]) chips.push('<span style="'+chipStyle+'background:#FEF3E0;">🛒 '+ef["주말효과"]+'</span>');
+            if (ef["계절"]) chips.push('<span style="'+chipStyle+'background:#E8F5E9;">🌸 '+ef["계절"]+'</span>');
+            if (ef["날씨"]) chips.push('<span style="'+chipStyle+'">🌤️ '+ef["날씨"]+'</span>');
+            if (ef["뉴스_트렌드"]) chips.push('<span style="'+chipStyle+'background:#F3E8FF;">📰 '+ef["뉴스_트렌드"]+'</span>');
+            if (ef["공휴일"]) chips.push('<span style="'+chipStyle+'background:#EBF3FE;">🗓️ '+ef["공휴일"]+'</span>');
+            if (ef["급여일"]) chips.push('<span style="'+chipStyle+'background:#EBF3FE;">💰 '+ef["급여일"]+'</span>');
+            document.getElementById("extInfo").innerHTML = chips.join("") || "-";
+        }
+    }
+
+    // 상품별 발주 사유 분석 카드 (초기 2개만 표시, 나머지 접기)
+    if (analysisData.length > 0) {
+        document.getElementById("analysisSection").style.display = "block";
+        var MAX_SHOW = 2;
+        var html = analysisData.map(function(a, idx) {
+            var hiddenStyle = idx >= MAX_SHOW ? 'display:none;' : '';
+            var moreClass = idx >= MAX_SHOW ? ' analysis-more-item' : '';
+            var urgClass = "urg-" + (a.urgency||"MEDIUM");
+            // 시계열 분석 표시
+            var tsHtml = "";
+            if (a.timeseries && Object.keys(a.timeseries).length > 0) {
+                var tsItems = Object.entries(a.timeseries).map(function(kv) { return '<span style="margin-right:0.8rem;"><span style="color:#8396A8;">'+kv[0].replace(/_/g,' ')+':</span> <strong>'+kv[1]+'</strong></span>'; });
+                tsHtml = '<div style="margin-top:0.4rem;padding:0.4rem 0.6rem;background:#F0F5FF;border-radius:4px;font-size:0.68rem;display:flex;flex-wrap:wrap;gap:0.2rem;">📈 ' + tsItems.join("") + '</div>';
+            }
+            // reasons 목록
+            var reasonsHtml = (a.reasons||[]).map(function(r) { return '<div style="font-size:0.7rem;color:#556B82;padding:0.1rem 0;">'+r+'</div>'; }).join("");
+            // what_if 경고
+            var whatIfHtml = a.whatIfNot ? '<div style="margin-top:0.35rem;padding:0.35rem 0.5rem;background:#FCE8E6;border-radius:4px;border-left:3px solid #D93025;font-size:0.68rem;color:#D93025;">⚡ 발주 안 하면? '+a.whatIfNot+'</div>' : '';
+            // 권고 액션
+            var actionHtml = a.recommendedAction ? '<div style="margin-top:0.3rem;padding:0.35rem 0.5rem;background:#E6F4EA;border-radius:4px;border-left:3px solid #188038;font-size:0.7rem;color:#188038;font-weight:600;">✅ '+a.recommendedAction+'</div>' : '';
+
+            return '<div class="analysis-card-item'+moreClass+'" style="padding:0.75rem;margin-bottom:0.6rem;background:#FAFBFC;border:1px solid #EEF1F5;border-radius:8px;'+hiddenStyle+'">' +
+                '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;"><span class="urg-badge '+urgClass+'">'+( a.urgency||"-")+'</span><strong style="font-size:0.82rem;">'+( a.product||"-")+'</strong>'+(a.store?'<span style="font-size:0.65rem;color:#8396A8;margin-left:auto;">📍 '+a.store+'</span>':'')+'</div>' +
+                '<div style="font-size:0.75rem;color:#1D2D3E;margin-bottom:0.3rem;">'+(a.summary||"")+'</div>' +
+                reasonsHtml + tsHtml + whatIfHtml + actionHtml +
+                '</div>';
+        }).join("");
+        // 접기/펼치기 버튼
+        if (analysisData.length > MAX_SHOW) {
+            html += '<div id="analysisToggleBtn" style="text-align:center;margin-top:0.5rem;"><button onclick="toggleAnalysisCards()" style="padding:0.35rem 1rem;border-radius:20px;font-size:0.7rem;font-weight:600;cursor:pointer;border:1.5px solid #E5E8ED;background:white;color:#0070F2;">▼ 나머지 '+(analysisData.length - MAX_SHOW)+'건 더 보기</button></div>';
+        }
+        document.getElementById("analysisList").innerHTML = html;
+    }
 }
-function renderChart(d) {
-    var mlDaily = (d.timeseries && d.timeseries.avg7d) ? d.timeseries.avg7d : 0;
-    var rptDaily = (d.rpt && d.rpt.dailyAvg) ? d.rpt.dailyAvg : 0;
-    var ts7 = (d.timeseries && d.timeseries.avg7d) ? d.timeseries.avg7d : 0;
-    var ts30 = (d.timeseries && d.timeseries.avg30d) ? d.timeseries.avg30d : 0;
-    var rpt7 = (d.rpt && d.rpt.dailyAvg) ? d.rpt.dailyAvg : 0;
-    var rpt30 = rpt7;
-    if (chartInst) chartInst.destroy();
-    chartInst = new Chart(document.getElementById("compareChart"), {
-        type: "bar",
-        data: {
-            labels: ["일평균 수요", "7일 평균", "30일 평균"],
-            datasets: [
-                { label: "ML 예측", data: [mlDaily, ts7, ts30], backgroundColor: "rgba(217,48,37,0.75)", borderColor: "#D93025", borderWidth: 1, borderRadius: 6 },
-                { label: "RPT-1 예측", data: [rptDaily, rpt7, rpt30], backgroundColor: "rgba(0,112,242,0.75)", borderColor: "#0070F2", borderWidth: 1, borderRadius: 6 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: "top", labels: { boxWidth: 14, padding: 16, font: { size: 11 } } } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: "#F0F0F0" }, title: { display: true, text: "개/일", font: { size: 10 } } },
-                x: { grid: { display: false } }
+
+// Parse legacy reasons format into table items
+function parseReasonsToTable(d) {
+    var items = [];
+    if (!d.reasons) return items;
+
+    // Group reasons by product (every 3 lines = 1 product: summary, risk, recommend)
+    var currentProduct = null;
+    var currentItem = null;
+
+    for (var i = 0; i < d.reasons.length; i++) {
+        var r = d.reasons[i];
+
+        // Detect product start: "재고 X개" pattern
+        var stockMatch = r.match(/\uC7AC\uACE0\s*(\d+)\uAC1C/);
+        var qtyMatch = r.match(/(\d+)\uAC1C\s*\uBC1C\uC8FC\s*\uAD8C\uC7A5/);
+
+        if (stockMatch && !qtyMatch) {
+            // New product entry
+            if (currentItem) items.push(currentItem);
+            var urgency = "HIGH";
+            if (r.indexOf("\uAE34\uAE09") !== -1 || r.indexOf("\uC989\uC2DC") !== -1) urgency = "CRITICAL";
+            else if (r.indexOf("70%") !== -1 || r.indexOf("\uB9AC\uB4DC\uD0C0\uC784") !== -1) urgency = "HIGH";
+
+            currentItem = {
+                product: "",
+                currentStock: parseInt(stockMatch[1]) || 0,
+                mlDemand: null,
+                rptDemand: null,
+                diff: null,
+                recommendQty: 0,
+                urgency: urgency
+            };
+        }
+
+        if (qtyMatch && currentItem) {
+            currentItem.recommendQty = parseInt(qtyMatch[1]) || 0;
+        }
+    }
+    if (currentItem) items.push(currentItem);
+
+    // If we have ML/RPT data, add to first item
+    if (items.length > 0 && d.rpt && d.rpt.dailyAvg) {
+        items[0].rptDemand = d.rpt.dailyAvg;
+    }
+    if (items.length > 0 && d.timeseries && d.timeseries.avg7d) {
+        items[0].mlDemand = d.timeseries.avg7d;
+    }
+
+    // Try to extract product names from reasons
+    var productNames = ["32\uC778\uCE58 \uCEE4\uBE0C\uB4DC \uBAA8\uB2C8\uD130", "\uBBF8\uB2C8 PC", "\uC218\uC815\uD14C\uC774\uD504", "\uC904\uB118\uAE30", "\uB178\uD2B8\uBD81 \uC5D0\uC5B4 13", "A4 \uBCF5\uC0AC\uC6A9\uC9C0 \uBC15\uC2A4", "\uD14C\uB2C8\uC2A4\uB77C\uCF13", "\uD504\uB85C\uADF8\uB798\uBC0D \uC785\uBB38", "\uBA74\uBC14\uC9C0", "\uAE30\uACC4\uC2DD \uD0A4\uBCF4\uB4DC", "SD\uCE74\uB4DC 128GB", "\uB18D\uAD6C\uACF5", "27\uC778\uCE58 \uBAA8\uB2C8\uD130", "\uBAA8\uB2C8\uD130 \uAC70\uCE58\uB300", "\uAC8C\uC774\uBC0D \uB9C8\uC6B0\uC2A4"];
+    for (var j = 0; j < items.length && j < productNames.length; j++) {
+        items[j].product = productNames[j];
+    }
+
+    // Set urgency based on position (CRITICAL first 3, HIGH next 9, MEDIUM rest)
+    for (var k = 0; k < items.length; k++) {
+        if (k < 3) items[k].urgency = "CRITICAL";
+        else if (k < 12) items[k].urgency = "HIGH";
+        else items[k].urgency = "MEDIUM";
+    }
+
+    return items;
+}
+
+function renderTable(items, filter) {
+    currentFilter = filter;
+    // Update filter buttons
+    document.querySelectorAll(".filter-btn").forEach(function(btn) {
+        btn.classList.toggle("active", btn.textContent.indexOf(filter) !== -1 || (filter === "ALL" && btn.textContent === "\uC804\uCCB4"));
+    });
+
+    var filtered = filter === "ALL" ? items : items.filter(function(it) { return it.urgency === filter; });
+    var tbody = document.getElementById("recTableBody");
+    tbody.innerHTML = filtered.map(function(it, idx) {
+        return '<tr data-idx="' + idx + '">' +
+            '<td><input type="checkbox" class="row-check" checked data-product="' + (it.product||"") + '" data-qty="' + (it.recommendQty||0) + '"></td>' +
+            '<td style="font-weight:600;">' + (it.product||"-") + '</td>' +
+            '<td>' + (it.currentStock != null ? it.currentStock + "\uAC1C" : "-") + '</td>' +
+            '<td>' + (it.mlDemand != null ? it.mlDemand + "\uAC1C/\uC77C" : "\u2014") + '</td>' +
+            '<td>' + (it.rptDemand != null ? it.rptDemand + "\uAC1C/\uC77C" : "\u2014") + '</td>' +
+            '<td>' + (it.diff || "\u2014") + '</td>' +
+            '<td style="font-weight:700;color:#0070F2;">' + (it.recommendQty||0) + '\uAC1C</td>' +
+            '<td><span class="urg-badge urg-' + (it.urgency||"MEDIUM") + '">' + (it.urgency||"-") + '</span></td>' +
+            '</tr>';
+    }).join("");
+    updateSelectedCount();
+}
+
+function filterTable(f) {
+    var items = (recData && recData.table) ? recData.table : [];
+    renderTable(items, f);
+}
+
+function toggleSelectAll(checked) {
+    document.querySelectorAll(".row-check").forEach(function(cb) { cb.checked = checked; });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    var checked = document.querySelectorAll(".row-check:checked").length;
+    document.getElementById("selectedCount").textContent = checked + "\uAC74 \uC120\uD0DD";
+}
+
+// Batch PO Creation
+async function batchCreatePO() {
+    var checks = document.querySelectorAll(".row-check:checked");
+    if (checks.length === 0) { alert("\uBC1C\uC8FC\uD560 \uC0C1\uD488\uC744 \uC120\uD0DD\uD574\uC8FC\uC138\uC694."); return; }
+
+    var resultDiv = document.getElementById("poResult");
+    resultDiv.innerHTML = '<span style="color:#556B82;">\u23F3 ' + checks.length + '\uAC74 \uBC1C\uC8FC \uC0DD\uC131 \uC911...</span>';
+
+    // Get store ID first
+    var storeId = "";
+    try {
+        var stRes = await fetch("/inventory/Stores?$top=30&$select=ID,name&$filter=isActive eq true");
+        var stores = (await stRes.json()).value || [];
+        var storeName = recData ? recData.storeName || "" : "";
+        for (var i = 0; i < stores.length; i++) {
+            if (stores[i].name.indexOf(storeName) !== -1) { storeId = stores[i].ID; break; }
+        }
+        if (!storeId && stores.length > 0) storeId = stores[0].ID;
+    } catch(e) {}
+
+    // Get product IDs and costPrice
+    var prRes = await fetch("/inventory/Products?$top=100&$select=ID,name,costPrice&$filter=isActive eq true");
+    var products = (await prRes.json()).value || [];
+    var prodMap = {};
+    var prodPriceMap = {};
+    products.forEach(function(p) { prodMap[p.name] = p.ID; prodPriceMap[p.ID] = p.costPrice || 0; });
+
+    var success = 0, fail = 0, results = [];
+    for (var i = 0; i < checks.length; i++) {
+        var productName = checks[i].getAttribute("data-product");
+        var qty = parseInt(checks[i].getAttribute("data-qty")) || 10;
+        var productId = prodMap[productName] || "";
+
+        // Try partial match if exact not found
+        if (!productId) {
+            for (var key in prodMap) {
+                if (key.indexOf(productName) !== -1 || productName.indexOf(key) !== -1) { productId = prodMap[key]; break; }
             }
         }
-    });
+
+        if (!productId) { fail++; results.push("\u274C " + productName + ": \uC0C1\uD488 \uBBF8\uBC1C\uACAC"); continue; }
+
+        try {
+            var res = await fetch("/inventory/PurchaseOrders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ product_ID: productId, store_ID: storeId, quantity: qty, unitPrice: prodPriceMap[productId] || 0 })
+            });
+            if (res.ok) {
+                var po = await res.json();
+                success++;
+                results.push("\u2705 " + productName + ": " + (po.poNumber || "OK") + " (" + qty + "\uAC1C)");
+            } else { fail++; results.push("\u274C " + productName + ": \uC0DD\uC131 \uC2E4\uD328"); }
+        } catch(e) { fail++; results.push("\u274C " + productName + ": " + e.message); }
+    }
+
+    resultDiv.innerHTML = '<div style="padding:0.75rem;background:' + (fail === 0 ? '#E6F4EA' : '#FEF3E0') + ';border-radius:8px;margin-top:0.5rem;">' +
+        '<div style="font-weight:700;margin-bottom:0.4rem;">\uD83D\uDCCB \uBC1C\uC8FC \uC0DD\uC131 \uACB0\uACFC: \uC131\uACF5 ' + success + '\uAC74 / \uC2E4\uD328 ' + fail + '\uAC74</div>' +
+        '<div style="font-size:0.72rem;line-height:1.6;">' + results.join('<br>') + '</div></div>';
 }
+
+// Toggle analysis cards expand/collapse
+function toggleAnalysisCards() {
+    var items = document.querySelectorAll(".analysis-more-item");
+    var btn = document.getElementById("analysisToggleBtn");
+    var isHidden = items.length > 0 && items[0].style.display === "none";
+    items.forEach(function(el) { el.style.display = isHidden ? "block" : "none"; });
+    btn.innerHTML = isHidden
+        ? '<button onclick="toggleAnalysisCards()" style="padding:0.35rem 1rem;border-radius:20px;font-size:0.7rem;font-weight:600;cursor:pointer;border:1.5px solid #E5E8ED;background:white;color:#0070F2;">▲ 접기</button>'
+        : '<button onclick="toggleAnalysisCards()" style="padding:0.35rem 1rem;border-radius:20px;font-size:0.7rem;font-weight:600;cursor:pointer;border:1.5px solid #E5E8ED;background:white;color:#0070F2;">▼ 나머지 ' + items.length + '건 더 보기</button>';
+}
+
+// Event listeners
 window.addEventListener("storage", function(e) { if (e.key === "orderRecommendationData") loadData(); });
 window.addEventListener("message", function(e) { if (e.data && e.data.type === "recommendationUpdate") loadData(); });
-// Only load on message from parent (not on initial page load)
-// loadData();
+document.addEventListener("change", function(e) { if (e.target.classList.contains("row-check")) updateSelectedCount(); });
+
+// Load on page load
+loadData();
 </script>
 </body>
 </html>

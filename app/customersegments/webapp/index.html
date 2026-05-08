@@ -1,35 +1,211 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>고객 세분화</title>
-    <style>
-        html, body, body > div, #container, #container-uiarea {
-            height: 100%;
-        }
-    </style>
-    <script
-        id="sap-ui-bootstrap"
-        src="https://sapui5.hana.ondemand.com/1.136.7/resources/sap-ui-core.js"
-        data-sap-ui-theme="sap_horizon"
-        data-sap-ui-resource-roots='{
-            "customersegments": "./"
-        }'
-        data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
-        data-sap-ui-compat-version="edge"
-        data-sap-ui-async="true"
-        data-sap-ui-frame-options="trusted"
-    ></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고객 세분화</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#F5F6FA;color:#1D2D3E;padding:1.5rem;overflow-y:auto}
+.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.header h1{font-size:1.15rem;font-weight:700}
+.header .meta{font-size:0.72rem;color:#8396A8;margin-left:auto}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1.25rem}
+.kpi{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:0.85rem;text-align:center}
+.kpi .val{font-size:1.3rem;font-weight:700;line-height:1.2}
+.kpi .lbl{font-size:0.68rem;color:#8396A8;margin-top:0.15rem}
+.kpi.blue .val{color:#0070F2}
+.kpi.green .val{color:#188038}
+.kpi.orange .val{color:#E37400}
+.kpi.red .val{color:#D93025}
+
+.seg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0.85rem;margin-bottom:1.25rem}
+.seg-card{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1.1rem;position:relative;overflow:hidden;transition:box-shadow 0.2s}
+.seg-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+.seg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.seg-card.vip::before{background:linear-gradient(90deg,#FFD700,#FFA000)}
+.seg-card.loyal::before{background:linear-gradient(90deg,#4CAF50,#2E7D32)}
+.seg-card.atrisk::before{background:linear-gradient(90deg,#FF9800,#E65100)}
+.seg-card.new::before{background:linear-gradient(90deg,#2196F3,#0D47A1)}
+.seg-top{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem}
+.seg-icon{font-size:1.5rem}
+.seg-name{font-size:0.9rem;font-weight:700}
+.seg-count{margin-left:auto;font-size:1.1rem;font-weight:700;color:#0070F2}
+.seg-desc{font-size:0.72rem;color:#556B82;line-height:1.5;margin-bottom:0.7rem;padding:0.5rem;background:#F8F9FB;border-radius:6px}
+.seg-strategy{margin-bottom:0.5rem}
+.seg-strategy h4{font-size:0.7rem;font-weight:600;color:#0070F2;margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.3px}
+.seg-strategy ul{list-style:none;font-size:0.72rem;line-height:1.7}
+.seg-strategy ul li::before{content:'✓ ';color:#188038;font-weight:700}
+.seg-effect{font-size:0.68rem;color:#556B82;padding:0.4rem 0.6rem;background:#EBF3FE;border-radius:4px;border-left:3px solid #0070F2}
+.seg-rfm{display:flex;gap:0.4rem;margin-top:0.5rem}
+.rfm-item{flex:1;text-align:center;padding:0.3rem;background:#F0F2F5;border-radius:4px}
+.rfm-item .rfm-val{font-size:0.9rem;font-weight:700;color:#1D2D3E}
+.rfm-item .rfm-lbl{font-size:0.6rem;color:#8396A8}
+
+.action-section{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1.1rem;margin-bottom:1.25rem}
+.action-section h3{font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.4rem}
+.action-table{width:100%;border-collapse:collapse;font-size:0.75rem}
+.action-table th{background:#F0F2F5;padding:0.55rem 0.6rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED}
+.action-table td{padding:0.5rem 0.6rem;border-bottom:1px solid #EEF1F5;vertical-align:top}
+.action-table tr:hover td{background:#F8F9FB}
+.priority-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.62rem;font-weight:600}
+.priority-badge.urgent{background:#FCE8E6;color:#D93025}
+.priority-badge.high{background:#FEF3E0;color:#E37400}
+.priority-badge.medium{background:#E8F0FE;color:#1A73E8}
+.priority-badge.low{background:#E6F4EA;color:#188038}
+
+.card{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1.1rem;margin-bottom:1rem}
+.card h3{font-size:0.85rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem}
+table{width:100%;border-collapse:collapse;font-size:0.73rem}
+th{background:#F0F2F5;padding:0.5rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED;position:sticky;top:0}
+td{padding:0.4rem 0.5rem;border-bottom:1px solid #EEF1F5}
+tr:hover td{background:#F8F9FB}
+.seg-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.62rem;font-weight:600}
+.seg-badge.VIP_Champions{background:#FFF8E1;color:#F57C00}
+.seg-badge.Loyal_Regulars{background:#E8F5E9;color:#2E7D32}
+.seg-badge.At_Risk{background:#FBE9E7;color:#D84315}
+.seg-badge.New_Customers{background:#E3F2FD;color:#1565C0}
+.empty-state{text-align:center;padding:4rem 2rem;color:#8396A8}
+.empty-state .icon{font-size:3rem;margin-bottom:1rem}
+</style>
 </head>
-<body class="sapUiBody sapUiSizeCompact" id="content">
-    <div
-        data-sap-ui-component
-        data-name="customersegments"
-        data-id="container"
-        data-settings='{"id" : "customersegments"}'
-        data-handle-validation="true"
-    ></div>
+<body>
+<div id="emptyState" class="empty-state">
+<div class="icon">👥</div>
+<p>AI Chat에서 고객 세분화를 요청하면<br>여기에 분석 결과와 마케팅 전략이 표시됩니다.</p>
+<p style="margin-top:0.75rem;font-size:0.78rem;color:#B0B8C4;">예: "고객 세분화 분석 해줘"</p>
+</div>
+<div id="resultView" style="display:none;">
+<div class="header">
+<h1>👥 고객 세분화 분석 (RFM + KMeans)</h1>
+<span class="meta" id="segMeta"></span>
+</div>
+
+<!-- KPI -->
+<div class="kpi-row">
+<div class="kpi blue"><div class="val" id="kTotal">-</div><div class="lbl">총 고객 수</div></div>
+<div class="kpi green"><div class="val" id="kClusters">-</div><div class="lbl">세그먼트 수</div></div>
+<div class="kpi orange"><div class="val" id="kAtRisk">-</div><div class="lbl">At Risk 고객</div></div>
+<div class="kpi red"><div class="val" id="kSilhouette">-</div><div class="lbl">모델 품질(실루엣)</div></div>
+</div>
+
+<!-- Segment Cards with Strategy -->
+<div class="seg-grid" id="segGrid"></div>
+
+<!-- 즉시 실행 액션 플랜 -->
+<div class="action-section">
+<h3>🎯 세그먼트별 즉시 실행 액션 플랜</h3>
+<table class="action-table">
+<thead><tr><th>세그먼트</th><th>핵심 액션</th><th>채널</th><th>KPI 목표</th><th>우선순위</th></tr></thead>
+<tbody id="actionBody"></tbody>
+</table>
+</div>
+
+<!-- 고객 상세 -->
+<div class="card">
+<h3>📋 고객 상세 목록 (상위 50명)</h3>
+<div style="max-height:350px;overflow-y:auto;">
+<table id="segTable">
+<thead><tr><th>세그먼트</th><th>Recency</th><th>Frequency</th><th>Monetary</th><th>RFM</th><th>추천 액션</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<script>
+// 세그먼트별 메타 정보 (설명 + 전략 + 기대효과)
+var SEG_META = {
+    "VIP_Champions": {
+        icon: "👑", color: "vip",
+        desc: "최근 방문 빈도 높고, 구매 금액이 가장 큰 핵심 고객군입니다. 매출의 핵심 동력이며 이탈 시 영향이 큽니다.",
+        strategies: ["프리미엄 리워드 프로그램 (VIP 전용 할인/사은품)", "신상품 우선 체험 초대", "1:1 전담 매니저 배정", "생일/기념일 특별 혜택"],
+        effect: "기대효과: 객단가 +15%, LTV 극대화, 자연 추천으로 신규 유입",
+        action: "VIP 전용 이벤트 초대 발송", channel: "카카오톡/문자", kpi: "재구매율 95%↑", priority: "high"
+    },
+    "Loyal_Regulars": {
+        icon: "💚", color: "loyal",
+        desc: "꾸준히 방문하고 안정적으로 구매하는 충성 고객군입니다. VIP로 업그레이드 가능성이 높은 잠재 우수 고객입니다.",
+        strategies: ["멤버십 등급 업그레이드 유도 (다음 등급까지 N원!)", "크로스셀 추천 (연관 상품)", "친구 추천 보상 프로그램", "정기 구매 구독 할인"],
+        effect: "기대효과: VIP 전환율 +20%, 크로스셀로 객단가 +10%",
+        action: "등급 업그레이드 안내 + 크로스셀 쿠폰", channel: "앱푸시/이메일", kpi: "VIP 전환 20%↑", priority: "medium"
+    },
+    "At_Risk": {
+        icon: "⚠️", color: "atrisk",
+        desc: "한때 활발했으나 최근 방문이 줄어든 이탈 위험 고객군입니다. 즉각적인 재활성화 캠페인이 필요합니다.",
+        strategies: ["\"보고싶어요\" 개인화 메시지 발송", "재방문 시 특별 할인 쿠폰 (30% OFF)", "과거 구매 상품 재입고/신상 알림", "설문조사로 이탈 사유 파악"],
+        effect: "기대효과: 재방문율 +25%, 이탈 방지 → 연간 매출 손실 최소화",
+        action: "재방문 쿠폰(30%) + 개인화 메시지", channel: "카카오톡/문자", kpi: "재방문율 25%↑", priority: "urgent"
+    },
+    "New_Customers": {
+        icon: "🆕", color: "new",
+        desc: "최근 신규 가입하거나 첫 구매를 한 고객군입니다. 초기 경험이 향후 충성도를 결정합니다.",
+        strategies: ["웰컴 할인 쿠폰 (첫 재구매 20% OFF)", "온보딩 가이드 (인기 상품/혜택 안내)", "2회차 구매 리워드 포인트 2배", "카테고리별 추천 상품 큐레이션"],
+        effect: "기대효과: 2회차 구매 전환율 +30%, 초기 이탈 방지",
+        action: "웰컴 시리즈 자동 발송 (D+1, D+3, D+7)", channel: "이메일/앱푸시", kpi: "2회 구매율 30%↑", priority: "medium"
+    }
+};
+
+function loadData() {
+    var raw = localStorage.getItem("customerSegmentData");
+    if (!raw) return;
+    try {
+        var d = JSON.parse(raw);
+        document.getElementById("emptyState").style.display = "none";
+        document.getElementById("resultView").style.display = "block";
+        render(d);
+    } catch(e) { console.error(e); }
+}
+
+function render(d) {
+    document.getElementById("segMeta").textContent = d.meta || "";
+    document.getElementById("kTotal").textContent = d.totalCustomers || "-";
+    document.getElementById("kClusters").textContent = d.nClusters || "-";
+    document.getElementById("kSilhouette").textContent = d.silhouetteScore || "-";
+
+    var summary = d.segmentSummary || {};
+    // At Risk 수 계산
+    var atRiskCount = (summary["At_Risk"] ? summary["At_Risk"].count : 0);
+    document.getElementById("kAtRisk").textContent = atRiskCount + "명";
+
+    // 세그먼트 카드 렌더링
+    var grid = document.getElementById("segGrid");
+    grid.innerHTML = Object.keys(summary).map(function(name) {
+        var s = summary[name];
+        var meta = SEG_META[name] || { icon:"📊", color:"new", desc:"기타 세그먼트", strategies:[], effect:"", action:"", channel:"", kpi:"", priority:"low" };
+        var stratHtml = meta.strategies.map(function(st) { return "<li>" + st + "</li>"; }).join("");
+        return '<div class="seg-card ' + meta.color + '">' +
+            '<div class="seg-top"><span class="seg-icon">' + meta.icon + '</span><span class="seg-name">' + name.replace(/_/g, ' ') + '</span><span class="seg-count">' + s.count + '명</span></div>' +
+            '<div class="seg-desc">' + meta.desc + '</div>' +
+            '<div class="seg-strategy"><h4>📌 마케팅 전략</h4><ul>' + stratHtml + '</ul></div>' +
+            '<div class="seg-effect">' + meta.effect + '</div>' +
+            '<div class="seg-rfm"><div class="rfm-item"><div class="rfm-val">' + s.avgRfm + '</div><div class="rfm-lbl">평균 RFM</div></div></div>' +
+            '</div>';
+    }).join("");
+
+    // 액션 플랜 테이블
+    var actionBody = document.getElementById("actionBody");
+    actionBody.innerHTML = Object.keys(SEG_META).map(function(name) {
+        var meta = SEG_META[name];
+        if (!summary[name]) return "";
+        return '<tr><td><strong>' + meta.icon + ' ' + name.replace(/_/g,' ') + '</strong> (' + summary[name].count + '명)</td><td>' + meta.action + '</td><td>' + meta.channel + '</td><td>' + meta.kpi + '</td><td><span class="priority-badge ' + meta.priority + '">' + meta.priority.toUpperCase() + '</span></td></tr>';
+    }).join("");
+
+    // 고객 상세 테이블
+    if (d.segments && d.segments.length > 0) {
+        var tbody = document.querySelector("#segTable tbody");
+        tbody.innerHTML = d.segments.map(function(s) {
+            var name = s.segment_name || s.segmentName || "";
+            var meta = SEG_META[name] || {};
+            var shortAction = meta.action ? meta.action.substring(0, 25) + "..." : "-";
+            return '<tr><td><span class="seg-badge ' + name + '">' + name.replace(/_/g,' ') + '</span></td><td>' + (s.recency_score||s.recencyScore||"-") + '</td><td>' + (s.frequency_score||s.frequencyScore||"-") + '</td><td>' + (s.monetary_score||s.monetaryScore||"-") + '</td><td><strong>' + (s.rfm_score||s.rfmScore||"-") + '</strong></td><td style="font-size:0.65rem;color:#556B82;">' + shortAction + '</td></tr>';
+        }).join("");
+    }
+}
+
+window.addEventListener("storage", function(e) { if (e.key === "customerSegmentData") loadData(); });
+window.addEventListener("message", function(e) { if (e.data && e.data.type === "segmentUpdate") loadData(); });
+loadData();
+</script>
 </body>
 </html>

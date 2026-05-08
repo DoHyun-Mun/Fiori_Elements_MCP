@@ -1111,29 +1111,16 @@ annotate service.CustomerPurchaseItems with @(UI.LineItem:[
 ]);
 
 // ═══════════════════════════════════════════════════════════════════════
-// DailySales - 일별 매출
+// DailySales - 일별 매출 (→ app/dailysales/annotations.cds로 이동)
 // ═══════════════════════════════════════════════════════════════════════
-annotate service.DailySales with @(
-  UI.HeaderInfo : { TypeName: '일별매출', TypeNamePlural: '일별 매출 목록', Title: {$Type:'UI.DataField',Value:salesDate}, Description: {$Type:'UI.DataField',Value:store.name} },
-  UI.SelectionFields : [ store_ID, product_ID, salesDate ],
-  UI.LineItem : [
-    {$Type:'UI.DataField', Value:salesDate, Label:'매출일', ![@HTML5.CssDefaults]:{width:'auto'}},
-    {$Type:'UI.DataField', Value:store.name, Label:'점포', ![@HTML5.CssDefaults]:{width:'auto'}},
-    {$Type:'UI.DataField', Value:product.name, Label:'상품', ![@HTML5.CssDefaults]:{width:'auto'}},
-    {$Type:'UI.DataField', Value:quantity, Label:'수량', ![@HTML5.CssDefaults]:{width:'auto'}},
-    {$Type:'UI.DataField', Value:revenue, Label:'매출액', ![@HTML5.CssDefaults]:{width:'auto'}},
-    {$Type:'UI.DataField', Value:costAmount, Label:'원가', ![@HTML5.CssDefaults]:{width:'auto'}},
-    {$Type:'UI.DataField', Value:profit, Label:'이익', ![@HTML5.CssDefaults]:{width:'auto'}},
-    {$Type:'UI.DataField', Value:customerCount, Label:'고객수', ![@HTML5.CssDefaults]:{width:'auto'}}
-  ],
-  UI.Facets : [{$Type:'UI.ReferenceFacet', ID:'BasicInfo', Label:'매출 상세', Target:'@UI.FieldGroup#BasicInfo'}],
-  UI.FieldGroup #BasicInfo : {$Type:'UI.FieldGroupType', Data:[
-    {$Type:'UI.DataField', Value:salesDate, Label:'매출일'}, {$Type:'UI.DataField', Value:store_ID, Label:'점포'},
-    {$Type:'UI.DataField', Value:product_ID, Label:'상품'}, {$Type:'UI.DataField', Value:quantity, Label:'수량'},
-    {$Type:'UI.DataField', Value:revenue, Label:'매출액'}, {$Type:'UI.DataField', Value:costAmount, Label:'원가'},
-    {$Type:'UI.DataField', Value:profit, Label:'이익'}, {$Type:'UI.DataField', Value:customerCount, Label:'고객수'}
-  ]},
-  UI.PresentationVariant : {SortOrder:[{Property:salesDate, Descending:true}], Visualizations:['@UI.LineItem']},
-  Capabilities : {InsertRestrictions:{Insertable:true}, UpdateRestrictions:{Updatable:true}, DeleteRestrictions:{Deletable:true}}
-);
-annotate service.DailySales with { salesDate @title:'매출일'; revenue @title:'매출액'; profit @title:'이익'; };
+
+annotate service.CustomerPurchases with {
+  customer @title:'고객' @Common.ValueList: { CollectionPath:'Customers', Parameters:[
+    {$Type:'Common.ValueListParameterInOut', LocalDataProperty:customer_ID, ValueListProperty:'ID'},
+    {$Type:'Common.ValueListParameterDisplayOnly', ValueListProperty:'name'}
+  ]};
+  store    @title:'점포' @Common.ValueList: { CollectionPath:'Stores', Parameters:[
+    {$Type:'Common.ValueListParameterInOut', LocalDataProperty:store_ID, ValueListProperty:'ID'},
+    {$Type:'Common.ValueListParameterDisplayOnly', ValueListProperty:'name'}
+  ]};
+};

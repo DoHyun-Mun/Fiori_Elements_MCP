@@ -26,11 +26,20 @@ module.exports = cds.service.impl(async function () {
 
       LOG.info(`사용자 메시지: ${message.substring(0, 100)}...`);
       
-      const reply = await chat(message, chatHistory);
+      const result = await chat(message, chatHistory);
       
-      LOG.info(`AI 응답 수신 (${reply.length}자)`);
+      // chat()이 구조화 데이터와 함께 반환할 수 있음
+      let reply, toolData = null;
+      if (result && typeof result === 'object' && result.reply) {
+        reply = result.reply;
+        toolData = result.toolData || null;
+      } else {
+        reply = result;
+      }
       
-      return { reply, success: true, error: null };
+      LOG.info(`AI 응답 수신 (${(reply || '').length}자, toolData: ${toolData ? toolData.length + '건' : 'none'})`);
+      
+      return { reply, success: true, error: null, toolData: toolData ? JSON.stringify(toolData) : null };
     } catch (error) {
       LOG.error('Chat 처리 오류:', error.message);
       return {

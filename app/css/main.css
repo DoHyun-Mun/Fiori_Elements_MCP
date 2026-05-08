@@ -194,7 +194,7 @@
         .ai-insight-card .insight-action:hover { text-decoration: underline; }
 
         /* Store Health Grid */
-        .store-health-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.4rem; max-height: 210px; overflow-y: auto; padding: 0.3rem; }
+        .store-health-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.4rem; max-height: 280px; overflow-y: auto; padding: 0.3rem; }
         .store-health-item {
             text-align: center; padding: 0.5rem 0.3rem; border-radius: var(--radius-sm);
             border: 1px solid var(--border-light); cursor: pointer; transition: all var(--transition);

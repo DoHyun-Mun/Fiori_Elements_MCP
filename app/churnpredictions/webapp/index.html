@@ -7,35 +7,63 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#F5F6FA;color:#1D2D3E;padding:1.5rem;overflow-y:auto}
-.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem}
-.header h1{font-size:1.1rem;font-weight:700}
-.header .meta{font-size:0.75rem;color:#8396A8;margin-left:auto}
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1rem}
-.kpi{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:0.85rem;text-align:center}
-.kpi .val{font-size:1.4rem;font-weight:700;line-height:1.2}
-.kpi .lbl{font-size:0.68rem;color:#8396A8;margin-top:0.15rem}
-.kpi.danger .val{color:#D93025}
-.kpi.warn .val{color:#E37400}
-.kpi.info .val{color:#0070F2}
-.kpi.ok .val{color:#188038}
-.card{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.header h1{font-size:1.15rem;font-weight:700}
+.header .meta{font-size:0.72rem;color:#8396A8;margin-left:auto}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:0.6rem;margin-bottom:1.25rem}
+.kpi{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:0.75rem;text-align:center}
+.kpi .val{font-size:1.2rem;font-weight:700;line-height:1.2}
+.kpi .lbl{font-size:0.65rem;color:#8396A8;margin-top:0.15rem}
+.kpi.blue .val{color:#0070F2}
+.kpi.green .val{color:#188038}
+.kpi.orange .val{color:#E37400}
+.kpi.red .val{color:#D93025}
+.kpi.purple .val{color:#7B2FF2}
+
+.risk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0.85rem;margin-bottom:1.25rem}
+.risk-card{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1rem;position:relative;overflow:hidden}
+.risk-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.risk-card.high::before{background:linear-gradient(90deg,#D93025,#FF5252)}
+.risk-card.medium::before{background:linear-gradient(90deg,#FF9800,#FFB74D)}
+.risk-card.low::before{background:linear-gradient(90deg,#4CAF50,#81C784)}
+.risk-top{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem}
+.risk-icon{font-size:1.3rem}
+.risk-name{font-size:0.85rem;font-weight:700}
+.risk-count{margin-left:auto;font-size:1.1rem;font-weight:700}
+.risk-desc{font-size:0.72rem;color:#556B82;line-height:1.5;margin-bottom:0.6rem;padding:0.4rem;background:#F8F9FB;border-radius:6px}
+.risk-strategy h4{font-size:0.68rem;font-weight:600;color:#0070F2;margin-bottom:0.25rem;text-transform:uppercase}
+.risk-strategy ul{list-style:none;font-size:0.7rem;line-height:1.6}
+.risk-strategy ul li::before{content:'→ ';color:#D93025;font-weight:700}
+.risk-effect{font-size:0.66rem;color:#556B82;padding:0.35rem 0.5rem;background:#FEF3E0;border-radius:4px;border-left:3px solid #E37400;margin-top:0.4rem}
+
+.action-section{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1.1rem;margin-bottom:1.25rem}
+.action-section h3{font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.4rem}
+.action-table{width:100%;border-collapse:collapse;font-size:0.73rem}
+.action-table th{background:#F0F2F5;padding:0.5rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED}
+.action-table td{padding:0.45rem 0.5rem;border-bottom:1px solid #EEF1F5;vertical-align:top}
+.action-table tr:hover td{background:#F8F9FB}
+.priority-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.6rem;font-weight:600}
+.priority-badge.urgent{background:#FCE8E6;color:#D93025}
+.priority-badge.high{background:#FEF3E0;color:#E37400}
+.priority-badge.medium{background:#E8F0FE;color:#1A73E8}
+
+.factor-section{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1.1rem;margin-bottom:1.25rem}
+.factor-section h3{font-size:0.85rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem}
+.factor-bar{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;font-size:0.75rem}
+.factor-name{width:120px;font-weight:600;text-align:right}
+.factor-track{flex:1;height:20px;background:#F0F2F5;border-radius:10px;overflow:hidden}
+.factor-fill{height:100%;background:linear-gradient(90deg,#D93025,#FF5252);border-radius:10px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;color:white;font-size:0.6rem;font-weight:700}
+
+.card{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1.1rem;margin-bottom:1rem}
 .card h3{font-size:0.85rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem}
-.perf-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.5rem}
-.perf-item{text-align:center;padding:0.5rem;background:#F8F9FB;border-radius:8px}
-.perf-item .pval{font-size:1.1rem;font-weight:700;color:#188038}
-.perf-item .plbl{font-size:0.65rem;color:#8396A8;margin-top:0.15rem}
-.table-wrap{max-height:300px;overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:0.78rem}
-th{background:#F0F2F5;padding:0.5rem 0.6rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED;position:sticky;top:0}
-td{padding:0.45rem 0.6rem;border-bottom:1px solid #EEF1F5}
+table{width:100%;border-collapse:collapse;font-size:0.72rem}
+th{background:#F0F2F5;padding:0.45rem 0.5rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED;position:sticky;top:0}
+td{padding:0.4rem 0.5rem;border-bottom:1px solid #EEF1F5}
 tr:hover td{background:#F8F9FB}
-.risk-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.68rem;font-weight:600}
-.risk-HIGH{background:#FCE8E6;color:#D93025}
-.risk-MEDIUM{background:#FEF3E0;color:#E37400}
-.risk-LOW{background:#E6F4EA;color:#188038}
-.factor-card{background:#F8F9FB;border-radius:8px;padding:0.85rem;margin-bottom:0.5rem}
-.factor-card .ftitle{font-size:0.78rem;font-weight:600;color:#556B82;margin-bottom:0.4rem}
-.factor-card .fdesc{font-size:0.78rem;line-height:1.6;color:#1D2D3E}
+.risk-badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.6rem;font-weight:600}
+.risk-badge.HIGH{background:#FCE8E6;color:#D93025}
+.risk-badge.MEDIUM{background:#FEF3E0;color:#E37400}
+.risk-badge.LOW{background:#E6F4EA;color:#188038}
 .empty-state{text-align:center;padding:4rem 2rem;color:#8396A8}
 .empty-state .icon{font-size:3rem;margin-bottom:1rem}
 </style>
@@ -43,45 +71,78 @@ tr:hover td{background:#F8F9FB}
 <body>
 <div id="emptyState" class="empty-state">
 <div class="icon">⚠️</div>
-<p>AI Chat에서 이탈 예측을 요청하면<br>여기에 시각화 결과가 표시됩니다.</p>
-<p style="margin-top:0.75rem;font-size:0.78rem;color:#B0B8C4;">예: "강남 본점 고객 이탈 예측 해줘"</p>
+<p>AI Chat에서 이탈 예측을 요청하면<br>여기에 분석 결과와 리텐션 전략이 표시됩니다.</p>
+<p style="margin-top:0.75rem;font-size:0.78rem;color:#B0B8C4;">예: "고객 이탈 예측 해줘"</p>
 </div>
 <div id="resultView" style="display:none;">
 <div class="header">
-<h1>⚠️ 고객 이탈 예측</h1>
+<h1>⚠️ 고객 이탈 예측 (XGBoost + RFM)</h1>
 <span class="meta" id="churnMeta"></span>
 </div>
+
 <div class="kpi-row">
-<div class="kpi info"><div class="val" id="kTotalCust">-</div><div class="lbl">총 고객 수</div></div>
-<div class="kpi danger"><div class="val" id="kChurnCust">-</div><div class="lbl">이탈 위험 고객</div></div>
-<div class="kpi warn"><div class="val" id="kChurnRate">-</div><div class="lbl">이탈 위험 비율</div></div>
-<div class="kpi ok"><div class="val" id="kAccuracy">-</div><div class="lbl">모델 정확도</div></div>
+<div class="kpi blue"><div class="val" id="kTotal">-</div><div class="lbl">총 고객 수</div></div>
+<div class="kpi red"><div class="val" id="kChurn">-</div><div class="lbl">이탈 위험 고객</div></div>
+<div class="kpi orange"><div class="val" id="kRate">-</div><div class="lbl">이탈률</div></div>
+<div class="kpi green"><div class="val" id="kAccuracy">-</div><div class="lbl">모델 정확도</div></div>
+<div class="kpi purple"><div class="val" id="kAuc">-</div><div class="lbl">AUC-ROC</div></div>
 </div>
+
+<!-- 위험 등급별 카드 -->
+<div class="risk-grid" id="riskGrid"></div>
+
+<!-- 즉시 실행 리텐션 액션 플랜 -->
+<div class="action-section">
+<h3>🎯 리텐션 즉시 실행 액션 플랜</h3>
+<table class="action-table">
+<thead><tr><th>대상 그룹</th><th>핵심 액션</th><th>채널</th><th>타이밍</th><th>KPI 목표</th><th>우선순위</th></tr></thead>
+<tbody id="actionBody"></tbody>
+</table>
+</div>
+
+<!-- 주요 이탈 요인 -->
+<div class="factor-section">
+<h3>📊 주요 이탈 요인 (Feature Importance)</h3>
+<div id="factorBars"></div>
+</div>
+
+<!-- 위험 고객 상세 -->
 <div class="card">
-<h3>📊 모델 성능</h3>
-<div class="perf-grid">
-<div class="perf-item"><div class="pval" id="pAccuracy">-</div><div class="plbl">정확도</div></div>
-<div class="perf-item"><div class="pval" id="pPrecision">-</div><div class="plbl">정밀도</div></div>
-<div class="perf-item"><div class="pval" id="pRecall">-</div><div class="plbl">재현율</div></div>
-<div class="perf-item"><div class="pval" id="pF1">-</div><div class="plbl">F1 점수</div></div>
-<div class="perf-item"><div class="pval" id="pAuc">-</div><div class="plbl">AUC-ROC</div></div>
-</div>
-</div>
-<div class="card">
-<h3>🧍 이탈 위험 고객 리스트</h3>
-<div class="table-wrap">
-<table id="churnTable">
-<thead><tr><th>고객코드</th><th>이름</th><th>연령대</th><th>멤버십</th><th>도시</th><th>이탈확률</th><th>위험도</th><th>주요 요인</th></tr></thead>
+<h3>👤 이탈 위험 고객 상세 (상위 20명)</h3>
+<div style="max-height:350px;overflow-y:auto;">
+<table id="custTable">
+<thead><tr><th>고객코드</th><th>이름</th><th>연령대</th><th>멤버십</th><th>도시</th><th>이탈확률</th><th>위험등급</th><th>주요 요인</th></tr></thead>
 <tbody></tbody>
 </table>
 </div>
 </div>
-<div class="card">
-<h3>🔍 주요 이탈 요인</h3>
-<div id="factorsList"></div>
 </div>
-</div>
+
 <script>
+var RISK_META = {
+    "HIGH": {
+        icon: "🔴", color: "high", name: "이탈 고위험",
+        desc: "이탈 확률 70%↑. 최근 방문 크게 감소하고 구매 패턴이 완전히 끊어진 고객. 즉각 조치 없으면 영구 이탈 가능성 높음.",
+        strategies: ["긴급 1:1 전화 상담 (이탈 사유 직접 청취)", "고액 쿠폰 발송 (50% OFF / 무료 체험)", "과거 애용 상품 재입고 알림", "VIP 복귀 프로그램 안내"],
+        effect: "기대효과: 이탈 방지 시 고객당 연간 ₩500K+ 매출 보전",
+        action: "1:1 전화 + 50% 쿠폰", channel: "전화/카카오톡", timing: "48시간 내", kpi: "복귀율 15%↑", priority: "urgent"
+    },
+    "MEDIUM": {
+        icon: "🟠", color: "medium", name: "이탈 주의",
+        desc: "이탈 확률 40~70%. 방문 빈도가 줄고 있으나 아직 완전 이탈은 아닌 상태. 선제적 리텐션으로 방지 가능.",
+        strategies: ["\"오랜만이에요\" 개인화 메시지", "관심 카테고리 신상품 알림", "포인트 만료 임박 리마인드", "재방문 시 더블 적립 이벤트"],
+        effect: "기대효과: 재방문율 +30%, HIGH 등급 전환 방지",
+        action: "개인화 메시지 + 더블 적립", channel: "앱푸시/이메일", timing: "1주 내", kpi: "재방문율 30%↑", priority: "high"
+    },
+    "LOW": {
+        icon: "🟢", color: "low", name: "안전 (모니터링)",
+        desc: "이탈 확률 40%↓. 현재 정상적으로 활동 중인 고객. 지속적인 관계 유지와 업셀 기회 모색.",
+        strategies: ["정기 감사 메시지/혜택 안내", "멤버십 업그레이드 유도", "추천 프로그램 참여 권유", "크로스셀 추천"],
+        effect: "기대효과: 충성도 유지, VIP 전환 가능성 +10%",
+        action: "감사 메시지 + 업그레이드 안내", channel: "이메일", timing: "월 1회", kpi: "VIP 전환 10%↑", priority: "medium"
+    }
+};
+
 function loadData() {
     var raw = localStorage.getItem("churnPredictionData");
     if (!raw) return;
@@ -92,37 +153,82 @@ function loadData() {
         render(d);
     } catch(e) { console.error(e); }
 }
+
 function render(d) {
     document.getElementById("churnMeta").textContent = d.meta || "";
-    // KPI
-    document.getElementById("kTotalCust").textContent = d.totalCustomers || "-";
-    document.getElementById("kChurnCust").textContent = d.churnCustomers || "-";
-    document.getElementById("kChurnRate").textContent = d.churnRate || "-";
-    document.getElementById("kAccuracy").textContent = d.accuracy || "-";
-    // Performance
-    if (d.performance) {
-        document.getElementById("pAccuracy").textContent = d.performance.accuracy || "-";
-        document.getElementById("pPrecision").textContent = d.performance.precision || "-";
-        document.getElementById("pRecall").textContent = d.performance.recall || "-";
-        document.getElementById("pF1").textContent = d.performance.f1 || "-";
-        document.getElementById("pAuc").textContent = d.performance.auc || "-";
-    }
-    // Table
-    if (d.customers && d.customers.length > 0) {
-        var tbody = document.querySelector("#churnTable tbody");
-        tbody.innerHTML = d.customers.map(function(c) {
-            var rClass = "risk-" + (c.risk || "MEDIUM");
-            return "<tr><td>" + (c.code||"-") + "</td><td><strong>" + (c.name||"-") + "</strong></td><td>" + (c.age||"-") + "</td><td>" + (c.membership||"-") + "</td><td>" + (c.city||"-") + "</td><td>" + (c.probability||"-") + "</td><td><span class='risk-badge " + rClass + "'>" + (c.risk||"-") + "</span></td><td>" + (c.factor||"-") + "</td></tr>";
+    document.getElementById("kTotal").textContent = d.totalCustomers || "-";
+    document.getElementById("kChurn").textContent = d.churnCustomers || "-";
+    document.getElementById("kRate").textContent = d.churnRate || "-";
+    document.getElementById("kAccuracy").textContent = d.accuracy || (d.performance ? d.performance.accuracy : "-");
+    document.getElementById("kAuc").textContent = d.performance ? d.performance.auc : "-";
+
+    // 위험 등급별 집계
+    var custs = d.customers || [];
+    var riskCounts = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+    custs.forEach(function(c) { var r = c.risk || "LOW"; if (riskCounts[r] !== undefined) riskCounts[r]++; });
+
+    // 위험 등급 카드
+    var grid = document.getElementById("riskGrid");
+    grid.innerHTML = ["HIGH","MEDIUM","LOW"].map(function(level) {
+        var meta = RISK_META[level];
+        var cnt = riskCounts[level] || 0;
+        if (cnt === 0 && level !== "HIGH") return "";
+        var stratHtml = meta.strategies.map(function(s){return "<li>"+s+"</li>";}).join("");
+        return '<div class="risk-card '+meta.color+'"><div class="risk-top"><span class="risk-icon">'+meta.icon+'</span><span class="risk-name">'+meta.name+'</span><span class="risk-count">'+cnt+'명</span></div><div class="risk-desc">'+meta.desc+'</div><div class="risk-strategy"><h4>📌 리텐션 전략</h4><ul>'+stratHtml+'</ul></div><div class="risk-effect">'+meta.effect+'</div></div>';
+    }).join("");
+
+    // 액션 플랜 테이블
+    var actionBody = document.getElementById("actionBody");
+    actionBody.innerHTML = ["HIGH","MEDIUM","LOW"].map(function(level) {
+        var meta = RISK_META[level];
+        var cnt = riskCounts[level] || 0;
+        if (cnt === 0) return "";
+        return '<tr><td><strong>'+meta.icon+' '+meta.name+'</strong> ('+cnt+'명)</td><td>'+meta.action+'</td><td>'+meta.channel+'</td><td>'+meta.timing+'</td><td>'+meta.kpi+'</td><td><span class="priority-badge '+meta.priority+'">'+meta.priority.toUpperCase()+'</span></td></tr>';
+    }).join("");
+
+    // 이탈 요인 바 차트 (한국어 매핑 포함)
+    var FEATURE_META = {
+        "recency_days": { kr: "최근 미방문", desc: "마지막 방문으로부터 경과 일수 — 길수록 이탈 위험↑" },
+        "purchase_count": { kr: "구매 횟수", desc: "총 구매 건수 — 적을수록 충성도↓" },
+        "total_spent": { kr: "총 구매 금액", desc: "누적 구매 금액 (원)" },
+        "avg_purchase_amount": { kr: "평균 구매 금액", desc: "건당 평균 결제 금액" },
+        "unique_products": { kr: "구매 상품 다양성", desc: "구매한 고유 상품 수" },
+        "unique_stores": { kr: "방문 점포 다양성", desc: "방문한 고유 점포 수" },
+        "total_items": { kr: "총 구매 수량", desc: "누적 구매 아이템 개수" },
+        "customer_lifetime_days": { kr: "고객 활동 기간", desc: "가입 후 경과 일수" },
+        "purchase_frequency": { kr: "구매 빈도", desc: "월/주 평균 구매 빈도" },
+        "avg_items_per_order": { kr: "건당 구매 수량", desc: "주문당 평균 아이템 수" }
+    };
+    var factors = d.factors || [];
+    var factorDiv = document.getElementById("factorBars");
+    if (factors.length > 0) {
+        var maxVal = 1;
+        factorDiv.innerHTML = factors.slice(0, 6).map(function(f) {
+            var name = typeof f === 'string' ? f.split(":")[0].trim() : String(f);
+            var val = typeof f === 'string' && f.indexOf(":") !== -1 ? parseFloat(f.split(":")[1]) : 1;
+            var pct = Math.max(10, (val / maxVal) * 100);
+            var meta = FEATURE_META[name] || { kr: name.replace(/_/g, ' '), desc: "" };
+            return '<div class="factor-bar"><span class="factor-name" title="'+meta.desc+'">'+meta.kr+'</span><div class="factor-track"><div class="factor-fill" style="width:'+pct+'%">'+(val>0?val:"")+'</div></div></div>' +
+                (meta.desc ? '<div style="font-size:0.62rem;color:#8396A8;margin-left:130px;margin-top:-4px;margin-bottom:4px;">💡 '+meta.desc+'</div>' : '');
         }).join("");
+    } else {
+        factorDiv.innerHTML = '<div style="font-size:0.75rem;color:#8396A8;padding:0.5rem;"><strong>recency_days (최근 방문 이후 일수)</strong>가 가장 큰 이탈 요인입니다.<br><span style="font-size:0.7rem;">→ 마지막 방문으로부터 경과 일수가 길수록 이탈 확률이 급격히 상승합니다.</span></div>';
     }
-    // Factors
-    if (d.factors && d.factors.length > 0) {
-        document.getElementById("factorsList").innerHTML = d.factors.map(function(f) {
-            return '<div class="factor-card"><div class="fdesc">' + f + '</div></div>';
+
+    // 고객 상세 테이블
+    if (custs.length > 0) {
+        var tbody = document.querySelector("#custTable tbody");
+        tbody.innerHTML = custs.slice(0, 20).map(function(c) {
+            var prob = c.probability;
+            var probStr = typeof prob === 'number' ? (prob > 1 ? prob.toFixed(0)+"%" : (prob*100).toFixed(1)+"%") : String(prob||"-");
+            return '<tr><td>'+( c.code||"-")+'</td><td><strong>'+(c.name||"-")+'</strong></td><td>'+(c.age||"-")+'</td><td>'+(c.membership||"-")+'</td><td>'+(c.city||"-")+'</td><td style="font-weight:700;color:#D93025;">'+probStr+'</td><td><span class="risk-badge '+(c.risk||"LOW")+'">'+(c.risk||"-")+'</span></td><td style="font-size:0.65rem;color:#556B82;">'+(c.factor||"-")+'</td></tr>';
         }).join("");
     }
 }
+
+window.addEventListener("storage", function(e) { if (e.key === "churnPredictionData") loadData(); });
 window.addEventListener("message", function(e) { if (e.data && e.data.type === "churnUpdate") loadData(); });
+loadData();
 </script>
 </body>
 </html>

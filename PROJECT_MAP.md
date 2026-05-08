@@ -1,224 +1,235 @@
-# 📍 store-pjt 프로젝트 기능 지도
+# 🏪 AI 점포 운영 시스템 - Project Map
 
-> AI 점포 운영 관리 시스템 (SAP CAP + Fiori + HANA Cloud + AI Core + Knowledge Graph)
-
----
-
-## 🎯 1. AI 대시보드 (메인 페이지)
-
-| 기능 | 파일 위치 |
-|------|----------|
-| 메인 HTML (6-STRIP 구조) | `app/index.html` |
-| AI 대시보드 JS (KPI, 인사이트, 차트, 건전성) | `app/js/dashboard.js` |
-| 공급망 네트워크 그래프 (vis.js, 위험경로 강조) | `app/js/supply-chain.js` |
-| 앱 라우팅 / 메뉴 (3계층 동적 로드) | `app/js/app.js` |
-| AI Chat 사이드 패널 | `app/js/chat.js` |
-| CSS 스타일 (메인) | `app/css/main.css` |
-| CSS 스타일 (채팅) | `app/css/chat.css` |
-
-### 대시보드 구조 (6 STRIP)
-1. **동적 KPI** (매출↑%, 재고건전성, 결품위험, 발주대기) — 클릭 시 상세 메뉴 이동
-2. **AI 인사이트 카드** (결품임박, 매출이상, 발주추천) — 실시간 AI 분석
-3. **매출 트렌드 + AI 예측** | **점포별 재고 건전성** — Chart.js + 히트맵
-4. **발주 추천 Top 5** | **이상 탐지 Top 5** — 즉시 액션 가능
-5. **공급망 네트워크** (위험 경로 기본 표시) — vis-network
+> **SAP BTP + CAP + HANA Cloud + AI Core + MCP Tools**
+> 점포 상품별 재고 발주 관리 + AI 예측 분석 통합 플랫폼
 
 ---
 
-## 🗄️ 2. 데이터베이스 스키마 (HANA Cloud)
+## 📁 프로젝트 구조
 
-| 기능 | 파일 위치 |
-|------|----------|
-| 전체 엔티티 정의 | `db/schema.cds` |
-| 초기 데이터 CSV (마스터/트랜잭션) | `db/data/*.csv` |
-| HDI Role (Graph 접근 권한) | `db/src/roles/graph_access.hdbrole` |
-
-### 주요 엔티티
-- **마스터**: Categories, Products, Suppliers, Materials, Stores, Customers
-- **재고/발주**: Inventories, PurchaseOrders, StoreProducts, ProductMaterials
-- **유통 프로세스**: DistributionCenters, InboundOrders, GoodsReceipts, Invoices, TransferOrders, StoreReceipts
-- **매출/고객**: DailySales, CustomerPurchases, CustomerPurchaseItems
-- **AI/ML 결과**: DemandForecasts, OrderRecommendations, ChurnPredictions, CustomerSegments, SalesAnomalies
-- **설정**: MenuItems
-
----
-
-## ⚙️ 3. 백엔드 서비스 (CAP Node.js)
-
-| 기능 | 파일 위치 |
-|------|----------|
-| OData 서비스 정의 (InventoryService) | `srv/service.cds` |
-| 비즈니스 로직 + AI 대시보드 Function Imports | `srv/service.js` |
-| OData 어노테이션 (마스터 데이터) | `srv/annotations.cds` |
-| OData 어노테이션 (물류 프로세스) | `srv/logistics-annotations.cds` |
-| AI Chat 서비스 정의 | `srv/chat-service.cds` |
-| AI Chat 핸들러 (sendMessage, healthCheck) | `srv/chat-service.js` |
-| AI Core 클라이언트 (Orchestration + MCP Tool Calling) | `srv/lib/aicore-client.js` |
-
-### AI 대시보드 Function Imports (`srv/service.cds` + `srv/service.js`)
-| Function | 설명 |
-|----------|------|
-| `getDashboardKPIs()` | 오늘 매출(전일대비%), 재고건전성점수, 결품위험건수, 발주대기건수 |
-| `getAIInsights()` | AI 인사이트 카드 (결품임박/매출이상/발주추천, 최대 5개) |
-| `getStoreHealthScores()` | 점포별 건전성 점수 (가용재고/최소재고 비율 기반) |
-| `getSalesForecastTrend()` | 매출 실적(7일) + AI 예측(7일) 결합 데이터 |
-
-### 비즈니스 로직 상세 (`srv/service.js`)
-- 발주 상태 관리: Draft → Submitted → Approved → Received
-- 재고 자동 반영 (입고 시 수량 증가)
-- 자동 채번 (PO-YYYYMMDD-XXXX, CP-YYYYMMDD-XXXX)
-- 판매가 자동 계산 (원가 × 마진율)
-- 고객 통계 자동 업데이트 (구매 시)
-
-### AI Chat (`srv/lib/aicore-client.js`)
-- SAP AI Core Orchestration SDK (@sap-ai-sdk/orchestration)
-- MCP Tool Server 연동 (function-calling)
-- Tool Call Loop (최대 5회)
-- 모델: gpt-4o
-
----
-
-## 🖥️ 4. Fiori Elements UI 앱
-
-| 앱 | 폴더 | 기능 |
-|----|------|------|
-| 분류 관리 | `app/categories/` | 카테고리 CRUD |
-| 상품 관리 | `app/products/` | 상품 CRUD |
-| 자재 관리 | `app/materials/` | 자재 마스터 |
-| 점포 관리 | `app/stores/` | 점포 CRUD |
-| 점포별 상품 | `app/storeproducts/` | 점포-상품 매핑 |
-| 공급업체 | `app/suppliers/` | 공급업체 관리 |
-| 물류센터 | `app/distributioncenters/` | DC 관리 |
-| 재고 관리 | `app/inventories/` | 재고 조회/수정 |
-| 발주 관리 | `app/purchaseorders/` | 발주 상태 워크플로우 |
-| 입고오더 | `app/inboundorders/` | 공급업체→DC 입고 |
-| 입고검수 | `app/goodsreceipts/` | 수량/품질 확인 |
-| 인보이스 | `app/invoices/` | 세금계산서 관리 |
-| 배송지시 | `app/transferorders/` | DC→점포 배송 |
-| 점포입고 | `app/storereceipts/` | 점포 수령 확인 |
-| 고객 관리 | `app/customers/` | 고객 마스터 |
-| 고객 구매이력 | `app/customerpurchases/` | 구매 내역 |
-| 일별 매출 | `app/dailysales/` | 시계열 매출 |
-| 수요 예측 | `app/demandforecasts/` | ML 예측 결과 |
-| 발주 추천 | `app/orderrecommendations/` | AI 기반 추천 |
-| 이탈 예측 | `app/churnpredictions/` | 고객 이탈 예측 |
-| 고객 세분화 | `app/customersegments/` | RFM 분석 |
-| 매출 이상탐지 | `app/salesanomalies/` | 이상 감지 |
-| 메뉴 관리 | `app/menus/` | 메뉴 트리 설정 |
-
----
-
-## 🌐 5. Approuter (인증/라우팅)
-
-| 기능 | 파일 위치 |
-|------|----------|
-| 라우팅 설정 (XSUAA 인증) | `approuter/xs-app.json` |
-| Approuter 패키지 | `approuter/package.json` |
-| Approuter Docker 이미지 | `approuter/Dockerfile` |
-
----
-
-## 🚀 6. Kyma 배포 (Kubernetes)
-
-| 기능 | 파일 위치 |
-|------|----------|
-| 네임스페이스 (`store-pjt`) | `k8s/namespace.yaml` |
-| CAP Backend Deployment | `k8s/deployment.yaml` |
-| CAP Backend Service | `k8s/service.yaml` |
-| Approuter Deployment | `k8s/approuter-deployment.yaml` |
-| Approuter Service | `k8s/approuter-service.yaml` |
-| API Gateway (외부 URL) | `k8s/apirule.yaml` |
-| HDI Deployer Job | `k8s/hdi-deployer-job.yaml` |
-| HANA HDI ServiceInstance/Binding | `k8s/hana-serviceinstance.yaml`, `k8s/hana-servicebinding.yaml` |
-| XSUAA ServiceInstance/Binding | `k8s/xsuaa-serviceinstance.yaml`, `k8s/xsuaa-servicebinding.yaml` |
-| AI Core Secret | `k8s/aicore-secret.yaml` |
-| 배포 자동화 스크립트 | `scripts/deploy-kyma.sh` |
-
-### 외부 접근 URL
-- `https://store-pjt.c56380c.kyma.ondemand.com/`
-
----
-
-## 🛠️ 7. 빌드 & 스크립트
-
-| 기능 | 파일 위치 |
-|------|----------|
-| CAP Backend Dockerfile | `Dockerfile` |
-| HDI Deployer Dockerfile | `Dockerfile.hdi-deployer` |
-| 마스터 데이터 생성 (100건씩) | `scripts/generate-data.js` |
-| 대량 고객/구매 데이터 생성 | `scripts/generate-bulk-data.js` |
-| 시계열 데이터 생성 (DailySales 60일) | `scripts/generate-daily-sales.js` |
-| **AI 대시보드 더미 데이터** (Forecasts, Recommendations, Anomalies) | `scripts/generate-ai-dashboard-data.js` |
-| 물류 프로세스 데이터 생성 | `scripts/generate-logistics-data.js` |
-| 재고 업데이트 스크립트 | `scripts/update-inventory-stock.js` |
-| Kyma 배포 자동화 | `scripts/deploy-kyma.sh` |
-
-### 빌드 & 배포 명령어
-```bash
-# 로컬 개발
-cds serve
-
-# AI 대시보드 데이터 재생성 (날짜 기준 갱신)
-node scripts/generate-ai-dashboard-data.js
-
-# Docker 빌드 & 배포
-docker build --no-cache -t ghcr.io/dohyun-mun/store-pjt:latest --platform linux/amd64 .
-docker push ghcr.io/dohyun-mun/store-pjt:latest
-
-# Kyma 전체 배포
-./scripts/deploy-kyma.sh
-
-# Pod 재시작 (빠른 배포)
-export KUBECONFIG=./kubeconfig-dev.yaml
-kubectl rollout restart deployment store-pjt -n store-pjt
+```
+store-pjt/
+├── app/                          # 프론트엔드 (Fiori Elements + Custom HTML)
+│   ├── index.html                # 메인 SPA (AI 대시보드 + 사이드 메뉴 + 채팅)
+│   ├── services.cds              # 앱별 annotation 참조 등록
+│   ├── css/
+│   │   ├── main.css              # 대시보드/레이아웃 스타일
+│   │   └── chat.css              # AI 채팅 패널 스타일
+│   ├── js/
+│   │   ├── app.js                # SPA 라우팅, 메뉴 로딩, iframe 관리
+│   │   ├── chat.js               # AI 채팅 (toolData JSON 기반 처리)
+│   │   ├── dashboard.js          # 대시보드 KPI/차트/인사이트 로딩
+│   │   └── supply-chain.js       # 공급망 네트워크 그래프 (vis.js)
+│   │
+│   ├── # ═══ Fiori Elements 앱 (OData + CDS Annotation) ═══
+│   ├── categories/               # 분류 관리
+│   ├── products/                 # 상품 관리
+│   ├── inventories/              # 재고 관리
+│   ├── stores/                   # 점포 관리
+│   ├── suppliers/                # 공급업체 관리
+│   ├── materials/                # 자재 관리
+│   ├── storeproducts/            # 점포별 상품 관리
+│   ├── purchaseorders/           # 발주 관리 (워크플로우: Draft→Submitted→Approved→Received)
+│   ├── customers/                # 고객 관리
+│   ├── customerpurchases/        # 고객 구매 이력
+│   ├── dailysales/               # 일별 매출 (Fiori Elements + SelectionFields 필터)
+│   ├── menus/                    # 메뉴 관리 (3계층 트리)
+│   │
+│   ├── # ═══ 유통 프로세스 앱 ═══
+│   ├── distributioncenters/      # 물류센터 관리
+│   ├── inboundorders/            # 입고오더 (공급업체→DC)
+│   ├── goodsreceipts/            # 입고검수
+│   ├── invoices/                 # 인보이스/세금계산서
+│   ├── transferorders/           # 배송지시 (DC→점포)
+│   ├── storereceipts/            # 점포입고
+│   │
+│   ├── # ═══ AI 분석 상세 페이지 (Custom HTML, localStorage 연동) ═══
+│   ├── demandforecasts/webapp/index.html    # 수요 예측 (차트+Action가이드+발주생성)
+│   ├── orderrecommendations/webapp/index.html # 발주 추천 (AI판단+사유분석+일괄발주)
+│   ├── churnpredictions/webapp/index.html   # 이탈 예측 (위험등급+리텐션전략+고객상세)
+│   ├── salesanomalies/webapp/index.html     # 이상 탐지 (대응가이드+항목테이블+권고)
+│   └── customersegments/webapp/index.html   # 고객 세분화 (RFM카드+마케팅전략+액션플랜)
+│
+├── srv/                          # 백엔드 서비스 (CAP Node.js)
+│   ├── service.cds               # InventoryService 엔티티/액션/함수 정의
+│   ├── service.js                # 비즈니스 로직 (발주 워크플로우, KPI, 인사이트)
+│   ├── annotations.cds           # UI Annotation (Fiori Elements용)
+│   ├── logistics-annotations.cds # 유통 프로세스 Annotation
+│   ├── chat-service.cds          # ChatService 정의
+│   ├── chat-service.js           # 채팅 → AI Core 연동
+│   └── lib/
+│       └── aicore-client.js      # SAP AI Core Orchestration + MCP Tool Calling
+│
+├── db/                           # 데이터 모델 + 샘플 데이터
+│   ├── schema.cds                # 전체 엔티티 스키마 (25+ 엔티티)
+│   ├── data/                     # CSV 초기 데이터 (점포/상품/재고/매출/고객 등)
+│   └── src/roles/                # HANA DB 역할 정의
+│
+├── scripts/                      # 데이터 생성/관리 스크립트
+│   ├── generate-daily-sales.js   # DailySales 데이터 생성
+│   ├── generate-ai-dashboard-data.js # AI 대시보드 데이터 생성
+│   ├── generate-logistics-data.js # 유통 프로세스 데이터 생성
+│   ├── generate-bulk-data.js     # 대량 데이터 일괄 생성
+│   ├── generate-data.js          # 기본 마스터 데이터 생성
+│   └── update-inventory-stock.js # 재고 업데이트
+│
+├── approuter/                    # SAP AppRouter (인증/라우팅)
+├── k8s/                          # Kyma/K8s 배포 매니페스트
+├── chart/                        # Helm Chart
+├── server.js                     # CAP 서버 엔트리 (정적 파일 서빙 포함)
+├── package.json                  # 프로젝트 의존성
+└── xs-security.json              # XSUAA 보안 설정
 ```
 
 ---
 
-## 🔑 8. 설정 파일
+## 🏗️ 아키텍처
 
-| 기능 | 파일 위치 |
-|------|----------|
-| CDS 빌드 설정 | `.cdsrc.json` |
-| 환경변수 (AI Core, MCP Server URL) | `.env` |
-| XSUAA 보안 설정 | `xs-security.json` |
-| 프로젝트 의존성 | `package.json` |
-| 서버 엔트리포인트 | `server.js` |
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Browser (SPA)                                               │
+│  ┌─────────┐ ┌──────────────┐ ┌───────────────────────────┐ │
+│  │Dashboard│ │Fiori Elements│ │AI Chat (Side Panel)        │ │
+│  │(KPI/차트)│ │(OData CRUD) │ │→ toolData JSON 처리       │ │
+│  └────┬────┘ └──────┬───────┘ └────────────┬──────────────┘ │
+│       │              │                       │                │
+│  ┌────┴──────────────┴───────────────────────┴──────────────┐│
+│  │          AI 분석 상세 페이지 (localStorage 연동)          ││
+│  │  수요예측 | 발주추천 | 이탈예측 | 이상탐지 | 고객세분화   ││
+│  └──────────────────────────────────────────────────────────┘│
+└──────────────────────────────┬──────────────────────────────┘
+                               │ HTTP
+┌──────────────────────────────┴──────────────────────────────┐
+│  CAP Server (Node.js)                                        │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  │
+│  │InventoryService│ │ChatService  │  │ AI Core Client     │  │
+│  │(OData V4)     │ │(sendMessage)│  │ (Orchestration +   │  │
+│  │getDashboardKPIs│ │             │  │  MCP Tool Calling) │  │
+│  │getAIInsights  │ └──────┬──────┘  └─────────┬──────────┘  │
+│  │getSalesForecast│        │                    │             │
+│  └───────┬───────┘         │                    │             │
+│          │                 │                    │             │
+│  ┌───────┴───────┐         │              ┌────┴────┐        │
+│  │  SQLite/HANA  │         │              │SAP AI   │        │
+│  │  (25+ Tables) │         │              │Core     │        │
+│  └───────────────┘         │              └────┬────┘        │
+└────────────────────────────┼───────────────────┼─────────────┘
+                             │                   │
+                    ┌────────┴────────┐  ┌──────┴──────┐
+                    │  GPT-4o (LLM)   │  │ MCP Server  │
+                    │  Orchestration   │  │ (Python ML) │
+                    └─────────────────┘  └─────────────┘
+```
 
 ---
 
-## 🔗 9. 아키텍처 흐름
+## 🤖 AI 분석 기능 (MCP Tools)
+
+| Tool | 기능 | 상세 페이지 | 주요 데이터 |
+|------|------|------------|------------|
+| `search_reorder_products` | 발주 추천 | orderrecommendations | ML_예측_발주추천, 발주_사유_분석, AI_종합_판단 |
+| `run_demand_forecast` | 수요 예측 | demandforecasts | forecasts, 예측_사유_분석, RPT1_AI_예측 |
+| `run_churn_prediction` | 이탈 예측 | churnpredictions | high_risk_customers, metrics, top_features |
+| `run_anomaly_detection` | 이상 탐지 | salesanomalies | top_anomalies, 이상_탐지_분석 |
+| `run_customer_segmentation` | 고객 세분화 | customersegments | segments (RFM + KMeans) |
+| `query_sales` | 매출 조회 | - | DailySales 필터 |
+| `query_customers` | 고객 조회 | - | Customers + Purchases |
+| `search_products` | 상품 검색 | - | Vector 유사도 검색 |
+| `graph_co_purchase` | 연관 상품 | - | HANA Graph PageRank |
+| `graph_supply_chain` | 공급망 분석 | - | 공급업체 의존도 |
+| `vector_search` | 시맨틱 검색 | - | HANA Vector Engine |
+
+---
+
+## 📊 대시보드 (app/index.html + dashboard.js)
+
+| 섹션 | 내용 | 데이터 소스 |
+|------|------|-----------|
+| KPI 카드 | 최근 매출 / 재고 건전성 / 결품 위험 / 발주 대기 | getDashboardKPIs() |
+| AI 인사이트 | 긴급/주의/기회 카드 (동적) | getAIInsights() |
+| 매출 트렌드 + AI 예측 | 7일 실적 + 7일 예측 차트 + 예측 근거 | getSalesForecastTrend() |
+| 점포 건전성 | 점포별 점수 그리드 | getStoreHealthScores() |
+| 발주 추천 Top 5 | 긴급도별 정렬 | OrderRecommendations |
+| 이상 탐지 | 최근 이상 건 | SalesAnomalies |
+| 공급망 네트워크 | vis.js 그래프 (위험 경로 강조) | Inventories + Stores |
+
+---
+
+## 💬 AI 채팅 흐름 (chat.js)
 
 ```
-브라우저 (AI 대시보드 + Fiori Elements)
-    ↓ HTTPS
-Kyma APIRule (store-pjt.c56380c.kyma.ondemand.com)
-    ↓
-Approuter (XSUAA 인증 + 라우팅)
-    ↓ HTTP (내부)
-CAP Backend (Node.js :4004)
-    ├── OData (InventoryService) → HANA Cloud (HDI Container)
-    │     ├── CRUD (22 엔티티)
-    │     └── AI Function Imports (getDashboardKPIs, getAIInsights, ...)
-    └── Chat (ChatService) → AI Core Orchestration → MCP Tool Server
-```
-
-### 데이터 흐름 (AI 대시보드)
-```
-DailySales (HANA) ─────→ getDashboardKPIs() ─→ KPI 카드
-DemandForecasts (HANA) ─→ getSalesForecastTrend() ─→ 매출+예측 차트
-OrderRecommendations ───→ getAIInsights() ─→ AI 인사이트 카드
-SalesAnomalies ─────────→ getAIInsights() ─→ AI 인사이트 카드
-Inventories ────────────→ getStoreHealthScores() ─→ 점포 건전성 히트맵
+사용자 입력 → /chat/sendMessage → AI Core Orchestration
+                                    → MCP Tool Calling (필요시)
+                                    → LLM 응답 생성
+                                    
+응답 수신 ← { reply, toolData: [{toolName, data}] }
+         ↓
+processToolData(toolData, msgDiv)
+  ├── toolName === "search_reorder_products" → localStorage("orderRecommendationData") + 버튼
+  ├── toolName === "run_demand_forecast"     → localStorage("forecastData") + 버튼
+  ├── toolName === "run_churn_prediction"    → localStorage("churnPredictionData") + 버튼
+  ├── toolName === "run_anomaly_detection"   → localStorage("salesAnomalyData") + 버튼
+  └── toolName === "run_customer_segmentation" → localStorage("customerSegmentData") + 버튼
 ```
 
 ---
 
-## 📊 10. 메뉴 체계 (5개 대분류)
+## 🎨 AI 상세 페이지 디자인 패턴 (통일)
 
-| 대분류 | 중분류 | 소메뉴 |
-|--------|--------|--------|
-| 🏷️ 마스터 데이터 | 상품, 점포, 거래처 | 분류/상품/자재/점포/점포상품/공급업체/물류센터 |
-| 📋 구매 (P2P) | 발주, 입고, 정산 | 발주관리/입고오더/입고검수/인보이스 |
-| 🚛 물류·재고 | 배송, 재고 | 배송지시/점포입고/재고관리 |
-| 👤 판매 & 고객 | 매출, 고객 | 일별매출/고객관리/구매이력
+모든 AI 분석 상세 페이지는 동일한 UX 패턴:
+
+1. **KPI 카드** - 핵심 수치 한눈에
+2. **Action 가이드/전략** - "그래서 뭘 해야 하는지"
+3. **데이터 테이블/카드** - 상세 항목 (접기/펼치기)
+4. **사유/근거** - "왜 이렇게 판단했는지"
+
+| 페이지 | Action 가이드 예시 |
+|--------|-------------------|
+| 수요 예측 | 주간 발주 기준량, 피크일 대비, 추세 판단 → 발주 생성 |
+| 발주 추천 | AI 종합 판단, 긴급도 가이드, 상품별 사유 → 일괄 발주 |
+| 이탈 예측 | 위험등급별 리텐션 전략, 즉시 실행 액션 플랜 |
+| 이상 탐지 | 유형별 대응 가이드 (급등/급감/패턴이탈) |
+| 고객 세분화 | 세그먼트별 마케팅 전략, 액션 플랜 테이블 |
+
+---
+
+## 🗄️ 주요 엔티티 (db/schema.cds)
+
+| 영역 | 엔티티 |
+|------|--------|
+| 마스터 | Categories, Products, Stores, Suppliers, Materials |
+| 관계 | StoreProducts, ProductMaterials |
+| 재고/발주 | Inventories, PurchaseOrders |
+| 고객 | Customers, CustomerPurchases, CustomerPurchaseItems |
+| 매출 | DailySales |
+| AI 예측 | DemandForecasts, OrderRecommendations |
+| AI 분석 | ChurnPredictions, CustomerSegments, SalesAnomalies |
+| 유통 | DistributionCenters, InboundOrders, GoodsReceipts, Invoices, TransferOrders, StoreReceipts |
+| 메뉴 | MenuItems (3계층 트리) |
+
+---
+
+## 🔑 핵심 비즈니스 로직 (srv/service.js)
+
+| 기능 | 설명 |
+|------|------|
+| PO 자동 채번 | `PO-YYYYMMDD-XXXX` 형식 자동 생성 |
+| PO 워크플로우 | Draft → Submitted → Approved/Rejected → Received |
+| 입고 처리 | receiveOrder 시 재고 자동 반영 |
+| 판매가 자동 계산 | costPrice × (1 + marginRate/100) |
+| KPI 동적 계산 | 최근 매출 fallback, 건전성 점수, 결품 위험 |
+| AI 인사이트 | 실시간 데이터 기반 긴급/주의/기회 카드 생성 |
+
+---
+
+## 🚀 배포 환경
+
+| 환경 | 구성 |
+|------|------|
+| 로컬 개발 | SQLite + cds watch |
+| Kyma (K8s) | HANA Cloud + AI Core + AppRouter + XSUAA |
+| MCP Server | Python ML (Kyma 배포) - Prophet, XGBoost, KMeans, IsolationForest |
+
+---
+
+## 📅 최종 업데이트: 2026-05-08

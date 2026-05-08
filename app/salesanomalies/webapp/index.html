@@ -7,31 +7,44 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#F5F6FA;color:#1D2D3E;padding:1.5rem;overflow-y:auto}
-.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem}
-.header h1{font-size:1.1rem;font-weight:700}
-.header .meta{font-size:0.75rem;color:#8396A8;margin-left:auto}
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1rem}
+.header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.header h1{font-size:1.15rem;font-weight:700}
+.header .meta{font-size:0.72rem;color:#8396A8;margin-left:auto}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1.25rem}
 .kpi{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:0.85rem;text-align:center}
 .kpi .val{font-size:1.3rem;font-weight:700;line-height:1.2}
 .kpi .lbl{font-size:0.68rem;color:#8396A8;margin-top:0.15rem}
-.kpi.danger .val{color:#D93025}
-.kpi.warn .val{color:#E37400}
-.kpi.info .val{color:#0070F2}
-.kpi.ok .val{color:#188038}
-.card{background:white;border:1px solid #E5E8ED;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.kpi.blue .val{color:#0070F2}
+.kpi.green .val{color:#188038}
+.kpi.orange .val{color:#E37400}
+.kpi.red .val{color:#D93025}
+
+.guide-section{background:white;border:2px solid #FEF3E0;border-radius:12px;padding:1.1rem;margin-bottom:1.25rem}
+.guide-section h3{font-size:0.9rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem}
+.guide-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0.75rem}
+.guide-card{padding:0.75rem;border-radius:8px;position:relative;overflow:hidden}
+.guide-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px}
+.guide-card.spike{background:#FEF3E0}.guide-card.spike::before{background:#D93025}
+.guide-card.drop{background:#E3F2FD}.guide-card.drop::before{background:#0070F2}
+.guide-card.pattern{background:#F3E8FF}.guide-card.pattern::before{background:#7B2FF2}
+.guide-card h4{font-size:0.78rem;font-weight:700;margin-bottom:0.3rem}
+.guide-card p{font-size:0.7rem;color:#556B82;line-height:1.5}
+.guide-card .action{font-size:0.68rem;color:#0070F2;font-weight:600;margin-top:0.3rem}
+
+.card{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1.1rem;margin-bottom:1rem}
 .card h3{font-size:0.85rem;font-weight:600;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem}
 .table-wrap{max-height:350px;overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:0.75rem}
-th{background:#F0F2F5;padding:0.5rem 0.5rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED;position:sticky;top:0}
+table{width:100%;border-collapse:collapse;font-size:0.73rem}
+th{background:#F0F2F5;padding:0.5rem;text-align:left;font-weight:600;border-bottom:2px solid #E5E8ED;position:sticky;top:0}
 td{padding:0.4rem 0.5rem;border-bottom:1px solid #EEF1F5}
 tr:hover td{background:#F8F9FB}
-.sev-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:600}
+.sev-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.62rem;font-weight:600}
 .sev-HIGH,.sev-CRITICAL{background:#FCE8E6;color:#D93025}
 .sev-MEDIUM{background:#FEF3E0;color:#E37400}
 .sev-LOW{background:#E6F4EA;color:#188038}
-.spike{color:#D93025;font-weight:600}
-.drop{color:#0070F2;font-weight:600}
-.reason-item{padding:0.35rem 0;font-size:0.78rem;line-height:1.5;border-bottom:1px solid #F8F9FB}
+.spike-val{color:#D93025;font-weight:600}
+.drop-val{color:#0070F2;font-weight:600}
+.reason-item{padding:0.4rem 0;font-size:0.78rem;line-height:1.5;border-bottom:1px solid #F8F9FB}
 .reason-item:last-child{border-bottom:none}
 .empty-state{text-align:center;padding:4rem 2rem;color:#8396A8}
 .empty-state .icon{font-size:3rem;margin-bottom:1rem}
@@ -45,17 +58,42 @@ tr:hover td{background:#F8F9FB}
 </div>
 <div id="resultView" style="display:none;">
 <div class="header">
-<h1>🚨 매출 이상 탐지</h1>
+<h1>🚨 매출 이상 탐지 (Isolation Forest + Z-Score)</h1>
 <span class="meta" id="anomMeta"></span>
 </div>
+
 <div class="kpi-row">
-<div class="kpi info"><div class="val" id="kStore">-</div><div class="lbl">점포</div></div>
-<div class="kpi ok"><div class="val" id="kTotal">-</div><div class="lbl">총 기록 수</div></div>
-<div class="kpi danger"><div class="val" id="kAnomalies">-</div><div class="lbl">이상 탐지 건수</div></div>
-<div class="kpi warn"><div class="val" id="kTarget">-</div><div class="lbl">분석 대상</div></div>
+<div class="kpi blue"><div class="val" id="kStore">-</div><div class="lbl">점포</div></div>
+<div class="kpi green"><div class="val" id="kTotal">-</div><div class="lbl">총 기록 수</div></div>
+<div class="kpi red"><div class="val" id="kAnomalies">-</div><div class="lbl">이상 탐지 건수</div></div>
+<div class="kpi orange"><div class="val" id="kRate">-</div><div class="lbl">이상 비율</div></div>
 </div>
+
+<!-- 긴급 대응 가이드 -->
+<div class="guide-section">
+<h3>🚦 이상 유형별 대응 가이드</h3>
+<div class="guide-grid">
+<div class="guide-card spike">
+<h4>📈 급등 (Spike)</h4>
+<p>정상 범위 대비 +30% 이상 급등. 프로모션 효과 or 일시적 수요 폭증.</p>
+<div class="action">→ 조치: 재고 확보, 발주 상향, 프로모션 효과 분석</div>
+</div>
+<div class="guide-card drop">
+<h4>📉 급감 (Drop)</h4>
+<p>정상 범위 대비 -25% 이상 급감. 재고 소진, 진열 누락, 경쟁사 이슈 가능.</p>
+<div class="action">→ 조치: 재고 확인, 진열 상태 점검, 고객 피드백 수집</div>
+</div>
+<div class="guide-card pattern">
+<h4>🔄 패턴 이탈 (Pattern Break)</h4>
+<p>기존 판매 패턴과 다른 변동. 수요 구조 변화 시그널일 수 있음.</p>
+<div class="action">→ 조치: 추세 모니터링, 수요 예측 모델 재검토, 시즌 분석</div>
+</div>
+</div>
+</div>
+
+<!-- 이상 항목 테이블 -->
 <div class="card">
-<h3>⚠️ 주요 이상 항목</h3>
+<h3>⚠️ 주요 이상 항목 (상위 10건)</h3>
 <div class="table-wrap">
 <table id="anomTable">
 <thead><tr><th>날짜</th><th>상품명</th><th>판매량</th><th>정상 범위 대비</th><th>유형</th><th>심각도</th></tr></thead>
@@ -63,15 +101,20 @@ tr:hover td{background:#F8F9FB}
 </table>
 </div>
 </div>
+
+<!-- 탐지 사유 -->
 <div class="card">
 <h3>🔍 탐지 사유</h3>
 <div id="reasonsList"></div>
 </div>
+
+<!-- 권고 사항 -->
 <div class="card">
-<h3>💡 권고 사항</h3>
+<h3>💡 권고 사항 (즉시 실행 액션)</h3>
 <div id="recList"></div>
 </div>
 </div>
+
 <script>
 function loadData() {
     var raw = localStorage.getItem("salesAnomalyData");
@@ -88,26 +131,34 @@ function render(d) {
     document.getElementById("kStore").textContent = d.store || "-";
     document.getElementById("kTotal").textContent = d.totalRecords || "-";
     document.getElementById("kAnomalies").textContent = d.anomalyCount || "-";
-    document.getElementById("kTarget").textContent = d.target || "-";
+    document.getElementById("kRate").textContent = d.anomalyRate || "-";
+
     // Table
     if (d.items && d.items.length > 0) {
         var tbody = document.querySelector("#anomTable tbody");
         tbody.innerHTML = d.items.map(function(r) {
             var sevClass = "sev-" + (r.severity || "MEDIUM");
-            var changeClass = (r.change && r.change.indexOf("+") !== -1) ? "spike" : (r.change && r.change.indexOf("-") !== -1 ? "drop" : "");
-            return "<tr><td>" + (r.date||"-") + "</td><td><strong>" + (r.product||"-") + "</strong></td><td>" + (r.qty||"-") + "</td><td class='" + changeClass + "'>" + (r.change||"-") + "</td><td>" + (r.type||"-") + "</td><td><span class='sev-badge " + sevClass + "'>" + (r.severity||"-") + "</span></td></tr>";
+            var chg = String(r.change || "-");
+            var changeClass = (chg.indexOf("+") !== -1 || chg.indexOf("급등") !== -1) ? "spike-val" : (chg.indexOf("-") !== -1 || chg.indexOf("급감") !== -1 ? "drop-val" : "");
+            return "<tr><td>" + (r.date||"-") + "</td><td><strong>" + (r.product||"-") + "</strong></td><td>" + (r.qty||"-") + "</td><td class='" + changeClass + "'>" + chg + "</td><td>" + (r.type||"-") + "</td><td><span class='sev-badge " + sevClass + "'>" + (r.severity||"-") + "</span></td></tr>";
         }).join("");
     }
     // Reasons
     if (d.reasons && d.reasons.length > 0) {
         document.getElementById("reasonsList").innerHTML = d.reasons.map(function(r) { return '<div class="reason-item">' + r + '</div>'; }).join("");
+    } else {
+        document.getElementById("reasonsList").innerHTML = '<div class="reason-item" style="color:#8396A8;">탐지 사유 정보가 없습니다.</div>';
     }
     // Recommendations
     if (d.recommendations && d.recommendations.length > 0) {
         document.getElementById("recList").innerHTML = d.recommendations.map(function(r) { return '<div class="reason-item">' + r + '</div>'; }).join("");
+    } else {
+        document.getElementById("recList").innerHTML = '<div class="reason-item" style="color:#8396A8;">위 대응 가이드를 참고하여 해당 유형별 조치를 취하세요.</div>';
     }
 }
+window.addEventListener("storage", function(e) { if (e.key === "salesAnomalyData") loadData(); });
 window.addEventListener("message", function(e) { if (e.data && e.data.type === "anomalyUpdate") loadData(); });
+loadData();
 </script>
 </body>
 </html>

@@ -15,9 +15,10 @@ service ChatService @(path: '/chat') {
     message : String,
     history : array of ChatMessage
   ) returns {
-    reply   : String;
-    success : Boolean;
-    error   : String;
+    reply    : String;
+    success  : Boolean;
+    error    : String;
+    toolData : LargeString;
   };
 
   /**

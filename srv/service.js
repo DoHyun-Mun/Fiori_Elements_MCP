@@ -252,22 +252,24 @@ module.exports = cds.service.impl(async function () {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    // 오늘 매출
-    let todayRevenue = 0, yesterdayRevenue = 0;
-    try {
-      const todaySales = await SELECT.from('com.inventory.DailySales').where({ salesDate: today });
-      todayRevenue = todaySales.reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
-      const yesterdaySales = await SELECT.from('com.inventory.DailySales').where({ salesDate: yesterday });
-      yesterdayRevenue = yesterdaySales.reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
-    } catch(e) {
-      // 오늘 데이터 없으면 가장 최근 데이터 사용
-      const recent = await SELECT.from('com.inventory.DailySales').orderBy({ salesDate: 'desc' }).limit(50);
+    // 매출: 오늘 데이터가 없으면 가장 최근 날짜 기준으로 표시
+    let todayRevenue = 0, yesterdayRevenue = 0, revenueLabel = '오늘';
+    const todaySales = await SELECT.from('com.inventory.DailySales').where({ salesDate: today });
+    todayRevenue = todaySales.reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
+
+    if (todayRevenue === 0) {
+      // 오늘 데이터 없으면 → 가장 최근 날짜 매출 사용
+      const recent = await SELECT.from('com.inventory.DailySales').orderBy({ salesDate: 'desc' }).limit(700);
       if (recent.length > 0) {
         const latestDate = recent[0].salesDate;
         const prevDate = new Date(new Date(latestDate).getTime() - 86400000).toISOString().split('T')[0];
         todayRevenue = recent.filter(r => r.salesDate === latestDate).reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
         yesterdayRevenue = recent.filter(r => r.salesDate === prevDate).reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
+        revenueLabel = latestDate.slice(5); // "04-29" 형태
       }
+    } else {
+      const yesterdaySales = await SELECT.from('com.inventory.DailySales').where({ salesDate: yesterday });
+      yesterdayRevenue = yesterdaySales.reduce((sum, r) => sum + (parseFloat(r.revenue) || 0), 0);
     }
     const revenueChange = yesterdayRevenue > 0 ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue * 100) : 0;
 
@@ -435,8 +437,16 @@ module.exports = cds.service.impl(async function () {
   this.on('getSalesForecastTrend', async () => {
     const result = [];
 
-    // 지난 7일 실적
+    // 지난 7일 실적 (기존 5개 상품만 필터 - DemandForecasts와 동일 상품)
+    const forecastProducts = [
+      'b1000001-0001-4000-8000-000000000001',
+      'b1000001-0002-4000-8000-000000000002',
+      'b1000001-0003-4000-8000-000000000003',
+      'b1000001-0004-4000-8000-000000000004',
+      'b1000001-0005-4000-8000-000000000005'
+    ];
     const sales = await SELECT.from('com.inventory.DailySales')
+      .where({ product_ID: { in: forecastProducts } })
       .orderBy({ salesDate: 'desc' })
       .limit(175); // 5점포 × 5상품 × 7일
 

@@ -10,381 +10,22 @@ function toggleChat() {
     const panel = document.getElementById('chatPanel');
     const tab = document.getElementById('chatToggleTab');
     const main = document.getElementById('main');
-    if (chatOpen) {
-        panel.classList.add('open');
-        tab.classList.add('hidden');
-        main.classList.add('chat-open');
-        document.getElementById('chatInput').focus();
-    } else {
-        panel.classList.remove('open');
-        tab.classList.remove('hidden');
-        main.classList.remove('chat-open');
-    }
+    if (chatOpen) { panel.classList.add('open'); tab.classList.add('hidden'); main.classList.add('chat-open'); document.getElementById('chatInput').focus(); }
+    else { panel.classList.remove('open'); tab.classList.remove('hidden'); main.classList.remove('chat-open'); }
 }
-
-function handleChatKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
-}
-
-function autoResizeInput(el) {
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 90) + 'px';
-}
+function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }
+function autoResizeInput(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 90) + 'px'; }
 
 function appendMessage(role, content) {
     const msgDiv = document.createElement('div');
-    msgDiv.className = `chat-msg ${role}`;
-    if (role === 'assistant') { msgDiv.innerHTML = renderMarkdown(content); checkAndLinkForecast(content, msgDiv); }
+    msgDiv.className = 'chat-msg ' + role;
+    if (role === 'assistant') { msgDiv.innerHTML = renderMarkdown(content); }
     else if (role === 'system') { msgDiv.innerHTML = content; }
     else { msgDiv.textContent = content; }
     const container = document.getElementById('chatMessages');
     container.appendChild(msgDiv);
     container.scrollTop = container.scrollHeight;
-}
-
-// 수요 예측 응답 감지 & 시각화 페이지 연동
-function checkAndLinkForecast(content, msgDiv) {
-    // 예측 테이블 패턴 감지: | 날짜 | 예측 | 하한 | 상한 |
-    // 예측 테이블 패턴 감지: | 날짜 | 예측 | 하한 | 상한 | 또는 "수요 예측" 키워드
-    const tableRegex = /\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|/g;
-    const matches = content.match(tableRegex);
-    const hasForecastKeyword = /수요\s*예측\s*결과|예측\s*판매량|forecastQty|발주\s*추천|추천\s*발주|이탈\s*예측|이탈\s*위험|이상\s*탐지|anomal/i.test(content);
-    if (!matches && !hasForecastKeyword) return;
-    if (matches && matches.length < 2 && !hasForecastKeyword) return;
-
-    // 테이블 데이터 파싱
-    const tableData = (matches || []).map(row => {
-        const cells = row.split("|").filter(c => c.trim());
-        return {
-            date: cells[0].trim(),
-            forecast: parseFloat(cells[1]),
-            low: parseFloat(cells[2]),
-            high: parseFloat(cells[3])
-        };
-    }).filter(r => !isNaN(r.forecast));
-
-    
-
-    // KPI 추출
-    const avgForecast = tableData.length > 0 ? (tableData.reduce((s,r) => s + r.forecast, 0) / tableData.length).toFixed(1) : "-";
-    // 추세 변화율: 테이블 `| 추세_변화율 | +6% |` 또는 인라인 형식
-    var trendMatch = content.match(/추세[_\s]*변화율\s*\|\s*([+\-]?\d+%)/);
-    if (!trendMatch) trendMatch = content.match(/변화율\s*([+\-]?\d+%)/);
-    // 예측 기간 추출: "**예측 기간**: 30일" 형태
-    var modelMatch = content.replace(/\*\*/g,"").match(/예측\s*기간[：:]\s*(\d+일?)/i);
-    const peakRow = tableData.length > 0 ? tableData.reduce((max, r) => r.forecast > max.forecast ? r : max, tableData[0]) : null;
-
-    // 분석 섹션 파싱 (테이블/리스트/다양한 형식 모두 지원)
-    const analysis = [];
-    function extractSection(text, titlePattern) {
-        const regex = new RegExp(titlePattern + '[\\s\\S]*?(?=#{2,}\\s|$)', 'i');
-        const match = text.match(regex);
-        if (!match) return [];
-        const section = match[0];
-        const items = [];
-        // 테이블 형식: | key | value | (헤더/구분선 제외)
-        const tableRows = section.match(/\|\s*[^|\-][^|]*\|\s*[^|]+\|/g);
-        if (tableRows) {
-            tableRows.forEach(function(row) {
-                const cells = row.split('|').filter(function(c) { return c.trim() && !c.match(/^[\-]+$/); });
-                if (cells.length >= 2) {
-                    var k = cells[0].trim(), v = cells[1].trim();
-                    // 헤더 행 제외
-                    if (/^(지표|요인|날짜|항목)$/i.test(k)) return;
-                    if (/^(값|상태|예측)$/i.test(v)) return;
-                    items.push(k.replace(/_/g, ' ') + ': ' + v);
-                }
-            });
-        }
-        // 리스트 형식: - text 또는 • text
-        const listItems = section.match(/^\s*[-•]\s*.+/gm);
-        if (listItems) {
-            listItems.forEach(function(li) { items.push(li.replace(/^\s*[-•]\s*/, '').replace(/\*\*/g, '')); });
-        }
-        return items;
-    }
-    var tsItems = extractSection(content, '시계열\\s*분석');
-    if (tsItems.length > 0) analysis.push({ title: "📊 시계열 분석", items: tsItems });
-    var extItems = extractSection(content, '외부\\s*요인');
-    if (extItems.length > 0) analysis.push({ title: "🌍 외부 요인", items: extItems });
-    var keyItems = extractSection(content, '(핵심\\s*사유|예측\\s*사유)');
-    if (keyItems.length > 0) analysis.push({ title: "💡 핵심 사유", items: keyItems });
-    var confItems = extractSection(content, '예측\\s*신뢰');
-    if (confItems.length > 0) analysis.push({ title: "🎯 예측 신뢰도", items: confItems });
-    // Fallback: analysis가 비어있으면 content에서 직접 추출
-    if (analysis.length === 0) {
-        var sections = content.split(/#{2,}\s*/g).filter(function(s) { return s.trim().length > 10; });
-        sections.forEach(function(sec) {
-            var lines = sec.split("\n").filter(function(l) { return l.trim(); });
-            if (lines.length < 2) return;
-            var title = lines[0].replace(/[#*]/g, "").trim();
-            if (title.match(/예측\s*결과|데이터\s*테이블/)) return;
-            var items = [];
-            for (var i = 1; i < lines.length; i++) {
-                var line = lines[i].trim();
-                if (line.startsWith("|") && !line.match(/^\|[-\s]+\|/)) {
-                    var cells = line.split("|").filter(function(c) { return c.trim(); });
-                    if (cells.length >= 2) items.push(cells[0].trim() + ": " + cells[1].trim());
-                } else if (line.startsWith("-") || line.startsWith("•")) {
-                    items.push(line.replace(/^[-•]\s*/, "").replace(/\*\*/g, ""));
-                }
-            }
-            if (items.length > 0 && title) {
-                analysis.push({ title: title.slice(0, 30), items: items.slice(0, 8) });
-            }
-        });
-    }
-    // localStorage에 저장
-    // 점포명/상품명 추출 (AI 응답에서)
-    // 점포명 동적 감지: "XX 본점/지점/점" 패턴 또는 하드코딩 목록
-    var detectedStore = "";
-    var detectedProduct = "";
-    var storeMatch = content.replace(/\*\*/g,"").match(/([가-힣]+\s*(?:본점|지점|점))/);
-    if (storeMatch) detectedStore = storeMatch[1].trim();
-    if (!detectedStore) {
-        var storeNames = ["강남 본점","서초 지점","잠실 지점","여의도 지점","홍대 지점","부산 해운대점","대구 동성로점","인천 송도점","광주 충장로점","대전 둔산점","이태원 지점"];
-        storeNames.forEach(function(sn) { if (content.indexOf(sn) !== -1) detectedStore = sn; });
-    }
-    // 상품명 추출: "**대상**: 강남 본점 - 미니 PC" 형식 우선
-    var targetMatch = content.replace(/\*\*/g, "").match(/대상[：:]\s*[^-\n]+-\s*(.+)/i);
-    if (targetMatch) detectedProduct = targetMatch[1].trim();
-    if (!detectedProduct) {
-        try { var qMatch = content.match(/"([^"]{2,30})"/); if (qMatch) detectedProduct = qMatch[1]; } catch(e) {}
-    }
-    if (!detectedProduct && detectedStore) {
-        var idx2 = content.indexOf(detectedStore);
-        if (idx2 !== -1) {
-            var after = content.substring(idx2 + detectedStore.length, idx2 + detectedStore.length + 60);
-            var words = after.replace(/[^\uAC00-\uD7AF\u0020a-zA-Z0-9]/g, " ").trim().split(/\s+/);
-            if (words.length >= 1 && words[0].length >= 2) detectedProduct = words.slice(0, 3).join(" ").trim();
-        }
-    }
-    const forecastData = {
-        meta: "AI 예측 결과 | " + (detectedStore || "") + " / " + (detectedProduct || "") + " | " + new Date().toLocaleString("ko-KR"),
-        storeName: detectedStore,
-        productName: detectedProduct,
-        kpi: {
-            avg: avgForecast,
-            trend: trendMatch ? trendMatch[1] : "-",
-            peak: peakRow ? peakRow.date.slice(5) : "-",
-            model: modelMatch ? modelMatch[1].trim().slice(0,20) : "AI"
-        },
-        table: tableData,
-        analysis: analysis.length > 0 ? analysis : [{ title: "📊 분석 요약", items: ["데이터 기반 예측 완료"] }]
-    };
-    localStorage.setItem("forecastData", JSON.stringify(forecastData));
-
-    // "상세 보기" 버튼 추가
-    const btn = document.createElement("div");
-    btn.style.cssText = "margin-top:12px;padding:8px 14px;background:linear-gradient(135deg,#0070F2,#6B4FBB);color:white;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:block;width:fit-content;";
-    btn.textContent = "📊 예측 결과 상세 보기";
-    btn.onclick = function() {
-        showContentFrame("/demandforecasts/webapp/index.html"); highlightMenuForUrl("/demandforecasts/webapp/index.html");
-        var frame = document.getElementById("contentFrame");
-        var origOnload = frame.onload;
-        frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type:"forecastUpdate"}, "*"); }, 200); };
-    };
-    if (!/발주\s*추천|추천\s*발주|이탈\s*예측|이탈\s*위험|이상\s*탐지/i.test(content)) { msgDiv.appendChild(btn); }
-
-    // 발주 추천 감지 & 데이터 파싱 & 버튼 추가
-    var hasOrderRec = /발주\s*추천|추천\s*발주|order\s*recommend/i.test(content);
-    if (hasOrderRec) {
-        // 테이블 셀 값 추출 헬퍼
-        var clean = content.replace(/\*\*/g, "");
-        function tblVal(key) {
-            var re = new RegExp("\\|\\s*" + key + "\\s*\\|\\s*([^|\\n]+)", "i");
-            var m = clean.match(re);
-            return m ? m[1].trim() : "";
-        }
-        function tblNum(key) {
-            var v = tblVal(key);
-            if (!v) return 0;
-            var n = v.match(/([\d,.]+)/);
-            return n ? parseFloat(n[1].replace(/,/g, "")) : 0;
-        }
-        function exVal(pattern) { var m = clean.match(pattern); return m ? m[1].trim() : ""; }
-        function exNum(pattern) { var m = clean.match(pattern); return m ? parseFloat(m[1].replace(/,/g, "")) || 0 : 0; }
-
-        // ML 발주 추천 테이블에서 추출: | 상품명 | 현재재고 | 일수요 | 추천수량 | 긴급도 | 예상비용 |
-        var mlTableMatch = clean.match(/\|\s*[^|\n]+\|\s*[\d,.]+개?\s*\|\s*[\d,.]+[^\n|]*\|\s*[\d,.]+개?\s*\|\s*(HIGH|MEDIUM|LOW|CRITICAL)\s*\|\s*[^\n|]+\|/i);
-        var recProduct = "", mlCurrentStock = 0, mlDailyDemand = 0, mlRecommendedQty = 0, mlUrgency = "", mlEstimatedCost = "";
-        if (mlTableMatch) {
-            var cells = mlTableMatch[0].split("|").filter(function(c) { return c.trim(); });
-            if (cells.length >= 6) {
-                recProduct = cells[0].trim();
-                mlCurrentStock = parseFloat((cells[1].match(/([\d,.]+)/) || [0,0])[1]) || 0;
-                mlDailyDemand = parseFloat((cells[2].match(/([\d,.]+)/) || [0,0])[1]) || 0;
-                mlRecommendedQty = parseFloat((cells[3].match(/([\d,.]+)/) || [0,0])[1]) || 0;
-                mlUrgency = cells[4].trim();
-                mlEstimatedCost = cells[5].trim();
-            }
-        }
-        if (!recProduct) recProduct = detectedProduct || "";
-        if (!mlEstimatedCost) mlEstimatedCost = exVal(/예상\s*비용[：:]*\s*([^\n|]+)/i);
-
-        // 시계열 분석 테이블에서 추출
-        var ts7day = tblNum("최근7일_평균") || tblNum("최근 7일 평균");
-        var ts30day = tblNum("최근30일_평균") || tblNum("최근 30일 평균");
-        var tsTrend = tblVal("추세_변화율") || tblVal("추세 변화율");
-        var rptDaily = tblNum("RPT1_7일예측_일평균") || tblNum("RPT1 7일예측 일평균");
-        var mlDailyAvg = tblNum("ML_과거평균") || tblNum("ML 과거평균") || mlDailyDemand;
-
-        // RPT-1 테이블에서 7일 합계 계산
-        var rptRows = clean.match(/\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*[\d,.]+/g) || [];
-        var rptTotal = 0;
-        rptRows.forEach(function(r) { var n = r.match(/([\d,.]+)\s*$/); if (n) rptTotal += parseFloat(n[1]); });
-        if (!rptDaily && rptRows.length > 0) rptDaily = rptTotal / rptRows.length;
-
-        // 외부 요인 테이블에서 추출
-        var extDay = tblVal("요일");
-        var extSeason = tblVal("계절");
-        var extNews = tblVal("뉴스_트렌드") || tblVal("뉴스 트렌드");
-
-        // AI 종합 판단
-        var aiConclusion = exVal(/결론[：:]*\s*([^\n]+)/i);
-        var aiConfidence = exVal(/신뢰도[：:]*\s*([^\n]+)/i);
-        var aiRecommend = exVal(/권고[：:]*\s*([^\n]+)/i);
-
-        // 리스크/사유
-        var reasons = [];
-        var riskSection = clean.match(/리스크[\s\S]*?(?=###|$)/i) || clean.match(/발주\s*사유[\s\S]*?(?=###|$)/i);
-        if (riskSection) {
-            var rLines = riskSection[0].split("\n");
-            for (var ri = 0; ri < rLines.length; ri++) {
-                var rl = rLines[ri].trim();
-                if (rl.length > 3 && rl.startsWith("-")) reasons.push(rl.replace(/^-\s*/, ""));
-            }
-        }
-
-        // priority
-        var priority = "MEDIUM";
-        if (/CRITICAL/i.test(mlUrgency)) priority = "HIGH";
-        else if (/HIGH/i.test(mlUrgency)) priority = "HIGH";
-        else if (/LOW/i.test(mlUrgency)) priority = "LOW";
-
-        var recData = {
-            meta: "AI 발주 추천 | " + (detectedStore || "전체") + " | " + new Date().toLocaleString("ko-KR"),
-            storeName: detectedStore,
-            productName: recProduct,
-            priority: priority,
-            ml: { model: "Safety Stock + EOQ", currentStock: mlCurrentStock, safetyStock: 0, reorderPoint: 0, recommendedQty: mlRecommendedQty, estimatedCost: mlEstimatedCost, urgency: mlUrgency, stockDays: "" },
-            rpt: { totalDemand7d: rptTotal, dailyAvg: rptDaily },
-            timeseries: { avg7d: ts7day || mlDailyAvg, avg30d: ts30day, trend: tsTrend },
-            external: { day: extDay, season: extSeason, news: extNews },
-            reasons: reasons,
-            aiJudgment: { conclusion: aiConclusion, confidence: aiConfidence, recommendation: aiRecommend }
-        };
-        localStorage.setItem("orderRecommendationData", JSON.stringify(recData));
-        var btn2 = document.createElement("div");
-        btn2.style.cssText = "margin-top:8px;padding:8px 14px;background:linear-gradient(135deg,#E37400,#D93025);color:white;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:block;width:fit-content;";
-        btn2.textContent = "📋 발주 추천 상세 보기";
-        btn2.onclick = function() {
-            showContentFrame("/orderrecommendations/webapp/index.html");
-            highlightMenuForUrl("/orderrecommendations/webapp/index.html");
-            var frame = document.getElementById("contentFrame");
-            frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type:"recommendationUpdate"}, "*"); }, 200); };
-        };
-        msgDiv.appendChild(btn2);
-    }
-
-    // 이탈 예측 감지 & 데이터 파싱 & 버튼 추가
-    var hasChurn = /이탈\s*예측|이탈\s*위험|churn/i.test(content);
-    if (hasChurn && /고객\s*수|이탈\s*위험\s*비율/i.test(content)) {
-        var cc = content.replace(/\*\*/g, "");
-        var totalCust = (cc.match(/총\s*고객\s*수[：:]*\s*([\d,]+)/) || [0,""])[1];
-        var churnCust = (cc.match(/이탈\s*위험\s*고객\s*수[：:]*\s*([\d,]+)/) || [0,""])[1];
-        var churnRate = (cc.match(/이탈\s*위험\s*비율[：:]*\s*([\d,.]+%?)/) || [0,""])[1];
-        var accuracy = (cc.match(/정확도[^：:]*[：:]\s*([\d,.]+%?)/) || [0,""])[1];
-        var precision = (cc.match(/정밀도[^：:]*[：:]\s*([\d,.]+%?)/) || [0,""])[1];
-        var recall = (cc.match(/재현율[^：:]*[：:]\s*([\d,.]+%?)/) || [0,""])[1];
-        var f1 = (cc.match(/F1\s*점수[：:]*\s*([\d,.]+%?)/) || [0,""])[1];
-        var auc = (cc.match(/AUC[^：:]*[：:]\s*([\d,.]+%?)/) || [0,""])[1];
-        // 고객 테이블 파싱
-        var custRows = cc.match(/\|\s*CUST-[^|]+\|[^\n]+/g) || [];
-        var customers = custRows.map(function(row) {
-            var c = row.split("|").filter(function(x){return x.trim();});
-            return { code: (c[0]||"").trim(), name: (c[1]||"").trim(), age: (c[2]||"").trim(), membership: (c[3]||"").trim(), city: (c[4]||"").trim(), probability: (c[5]||"").trim(), risk: (c[6]||"").trim(), factor: (c[7]||"").trim() };
-        });
-        // 주요 이탈 요인
-        var factors = [];
-        var fSection = cc.match(/주요\s*이탈\s*요인[\s\S]*?(?=###|$)/i);
-        if (fSection) {
-            var fLines = fSection[0].split("\n");
-            for (var fi = 0; fi < fLines.length; fi++) {
-                var fl = fLines[fi].trim();
-                if (fl.startsWith("-") && fl.length > 3) factors.push(fl.replace(/^-\s*/, ""));
-            }
-        }
-        var churnData = {
-            meta: "이탈 예측 | " + (detectedStore || "전체") + " | " + new Date().toLocaleString("ko-KR"),
-            storeName: detectedStore,
-            totalCustomers: totalCust ? totalCust + "명" : "-",
-            churnCustomers: churnCust ? churnCust + "명" : "-",
-            churnRate: churnRate || "-",
-            accuracy: accuracy || "-",
-            performance: { accuracy: accuracy||"-", precision: precision||"-", recall: recall||"-", f1: f1||"-", auc: auc||"-" },
-            customers: customers,
-            factors: factors
-        };
-        localStorage.setItem("churnPredictionData", JSON.stringify(churnData));
-        var btn3 = document.createElement("div");
-        btn3.style.cssText = "margin-top:8px;padding:8px 14px;background:linear-gradient(135deg,#D93025,#7B2FF2);color:white;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:block;width:fit-content;";
-        btn3.textContent = "⚠️ 이탈 예측 상세 보기";
-        btn3.onclick = function() {
-            showContentFrame("/churnpredictions/webapp/index.html");
-            highlightMenuForUrl("/churnpredictions/webapp/index.html");
-            var frame = document.getElementById("contentFrame");
-            frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type:"churnUpdate"}, "*"); }, 200); };
-        };
-        msgDiv.appendChild(btn3);
-    }
-
-    // 이상 탐지 감지 & 데이터 파싱 & 버튼 추가
-    var hasAnomaly = /이상\s*탐지|anomal/i.test(content);
-    if (hasAnomaly && /이상\s*탐지\s*건수|총\s*기록\s*수/i.test(content)) {
-        var ac = content.replace(/\*\*/g, "");
-        // KPI 추출
-        var aStore = (ac.match(/점포\s*\|\s*([^|\n]+)/) || [0,""])[1].trim();
-        var aTarget = (ac.match(/분석\s*대상\s*\|\s*([^|\n]+)/) || [0,""])[1].trim();
-        var aTotal = (ac.match(/총\s*기록\s*수\s*\|\s*([^|\n]+)/) || [0,""])[1].trim();
-        var aCount = (ac.match(/이상\s*탐지\s*건수\s*\|\s*([^|\n]+)/) || [0,""])[1].trim();
-        // 이상 항목 테이블 파싱
-        var anomRows = ac.match(/\|\s*\d{4}-\d{2}-\d{2}\s*\|[^\n]+/g) || [];
-        var anomItems = anomRows.map(function(row) {
-            var c = row.split("|").filter(function(x){return x.trim();});
-            return { date:(c[0]||"").trim(), product:(c[1]||"").trim(), qty:(c[2]||"").trim(), change:(c[3]||"").trim(), type:(c[4]||"").trim(), severity:(c[5]||"").trim() };
-        });
-        // 탐지 사유
-        var aReasons = [];
-        var rSec = ac.match(/탐지\s*사유[\s\S]*?(?=###|$)/i);
-        if (rSec) { var rL = rSec[0].split("\n"); for (var ai=0;ai<rL.length;ai++) { var al=rL[ai].trim(); if(al.startsWith("-")&&al.length>3) aReasons.push(al.replace(/^-\s*/,"")); } }
-        // 권고 사항
-        var aRecs = [];
-        var recSec = ac.match(/권고\s*사항[\s\S]*?(?=###|$)/i);
-        if (recSec) { var rcL = recSec[0].split("\n"); for (var ri2=0;ri2<rcL.length;ri2++) { var rl2=rcL[ri2].trim(); if(rl2.startsWith("-")&&rl2.length>3) aRecs.push(rl2.replace(/^-\s*/,"")); } }
-
-        var anomData = {
-            meta: "이상 탐지 | " + (aStore || detectedStore || "전체") + " | " + new Date().toLocaleString("ko-KR"),
-            store: aStore || detectedStore || "-",
-            target: aTarget || "-",
-            totalRecords: aTotal || "-",
-            anomalyCount: aCount || "-",
-            items: anomItems,
-            reasons: aReasons,
-            recommendations: aRecs
-        };
-        localStorage.setItem("salesAnomalyData", JSON.stringify(anomData));
-        var btn4 = document.createElement("div");
-        btn4.style.cssText = "margin-top:8px;padding:8px 14px;background:linear-gradient(135deg,#E37400,#D93025);color:white;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:block;width:fit-content;";
-        btn4.textContent = "🚨 이상 탐지 상세 보기";
-        btn4.onclick = function() {
-            showContentFrame("/salesanomalies/webapp/index.html");
-            highlightMenuForUrl("/salesanomalies/webapp/index.html");
-            var frame = document.getElementById("contentFrame");
-            frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type:"anomalyUpdate"}, "*"); }, 200); };
-        };
-        msgDiv.appendChild(btn4);
-    }
+    return msgDiv;
 }
 
 function renderMarkdown(text) {
@@ -398,9 +39,204 @@ function renderMarkdown(text) {
 
 function setTyping(show) {
     document.getElementById('chatTyping').classList.toggle('show', show);
-    if (show) { const c = document.getElementById('chatMessages'); c.scrollTop = c.scrollHeight; }
+    if (show) { var c = document.getElementById('chatMessages'); c.scrollTop = c.scrollHeight; }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// 상세보기 버튼 헬퍼
+// ═══════════════════════════════════════════════════════════════
+function addDetailButton(msgDiv, label, color1, color2, url, msgType) {
+    var btn = document.createElement("div");
+    btn.style.cssText = "margin-top:8px;padding:8px 14px;background:linear-gradient(135deg," + color1 + "," + color2 + ");color:white;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:block;width:fit-content;";
+    btn.textContent = label;
+    btn.onclick = function() {
+        showContentFrame(url);
+        highlightMenuForUrl(url);
+        var frame = document.getElementById("contentFrame");
+        frame.onload = function() { document.getElementById('frameLoader').classList.add('hidden'); setTimeout(function() { frame.contentWindow.postMessage({type: msgType}, "*"); }, 200); };
+    };
+    msgDiv.appendChild(btn);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// toolData 기반 데이터 처리 (JSON 직접 활용, 정규식 불필요)
+// ═══════════════════════════════════════════════════════════════
+function processToolData(toolData, msgDiv) {
+    if (!toolData || !Array.isArray(toolData) || toolData.length === 0) return false;
+    var processed = false;
+
+    toolData.forEach(function(td) {
+        if (!td.data) return;
+        var d = td.data;
+        var tn = td.toolName || "";
+        console.log("[DEBUG] Processing toolData:", tn, Object.keys(d));
+
+        // 1. 발주 추천 (search_reorder_products)
+        if (tn === "search_reorder_products" || d.ML_예측_발주추천 || d["ML_예측_발주추천"] || (d.summary && d.summary.total_items)) {
+            var recTable = [];
+            var mlRec = d.ML_예측_발주추천 || d["ML_예측_발주추천"];
+            if (mlRec && mlRec.recommendations) {
+                recTable = mlRec.recommendations.map(function(r) {
+                    return { product: r.product_name||r.name||"", currentStock: r.current_stock||0, mlDemand: r.ml_demand||r.daily_demand||null, rptDemand: r.forecast_daily||r.rpt_demand||null, diff: r.forecast_diff_pct ? r.forecast_diff_pct+"%" : null, recommendQty: r.recommended_qty||r.quantity||0, urgency: r.urgency||r.priority||"MEDIUM" };
+                });
+            }
+            var analysisItems = [];
+            var reasonsD = d["발주_사유_분석"] || d.발주_사유_분석;
+            if (reasonsD && reasonsD.explanations) {
+                analysisItems = reasonsD.explanations.map(function(e) {
+                    return {
+                        product: e.product_name||e.name||"",
+                        store: e.store_name||"",
+                        urgency: e.urgency||"",
+                        summary: e.summary||"",
+                        reasons: e.reasons||[],
+                        timeseries: e["시계열_분석"]||e.시계열_분석||{},
+                        externalFactors: e["외부_요인_영향"]||e.외부_요인_영향||{},
+                        whatIfNot: e.what_if_not_ordered||e["what_if_not_ordered"]||"",
+                        recommendedAction: e.recommended_action||e["recommended_action"]||""
+                    };
+                });
+            }
+            var ext = d["외부_요인_데이터"]||d.외부_요인_데이터||{};
+            var judge = d["AI_종합_판단"]||d.AI_종합_판단||{};
+            var rpt = d["RPT1_AI_예측"]||d.RPT1_AI_예측||{};
+            var fa = d.filter_applied||{};
+            var sn = fa.store_id||d.store_name||"";
+            localStorage.setItem("orderRecommendationData", JSON.stringify({
+                meta: "AI 발주 추천 | "+(sn||"전체")+" | "+new Date().toLocaleString("ko-KR"), storeName: sn, summary: d.summary||{}, table: recTable,
+                timeseries: { avg7d: parseFloat(judge["ML_일평균"]||"0"), avg30d: 0, trend: judge["차이율"]||"" },
+                rpt: { totalDemand7d: rpt.predictions?(rpt.predictions.length*parseFloat(judge["RPT1_일평균"]||"0")):0, dailyAvg: parseFloat(judge["RPT1_일평균"]||"0") },
+                external: { day: ext["요일"]||"", season: ext["계절"]||"", news: ext["뉴스_트렌드"]||"", weather: ext["날씨"]||"", holiday: ext["공휴일"]||"", payday: ext["급여일"]||"" },
+                analysis: analysisItems, reasons: [],
+                aiJudgment: { conclusion: judge["결론"]||"", confidence: judge["신뢰도"]||"", recommendation: judge["권고"]||"" }
+            }));
+            addDetailButton(msgDiv, "📋 발주 추천 상세 보기", "#E37400", "#D93025", "/orderrecommendations/webapp/index.html", "recommendationUpdate");
+            processed = true;
+        }
+
+        // 2. 수요 예측 (run_demand_forecast)
+        if (tn === "run_demand_forecast" || (d.forecasts && !d.ML_예측_발주추천)) {
+            var rawForecasts = d.forecasts||d.predictions||d.forecast_table||d.forecast_data||[];
+            var ft = rawForecasts.map(function(r) {
+                return { date: (r.ds||r.date||"").substring(0,10), forecast: Math.round(r.hybrid_forecast||r.forecast||r.qty||0), low: Math.round(r.yhat_lower||r.low||r.confidence_low||0), high: Math.round(r.yhat_upper||r.high||r.confidence_high||0) };
+            });
+            var fTarget = d.forecast_target||{};
+            var fsn = fTarget.store||d.store_name||d.storeName||"";
+            var fpn = fTarget.product||d.product_name||d.productName||"";
+            if (!fsn && fTarget.scope) {
+                // "전체 점포/상품 합산" 형태 파싱
+                var scopeParts = fTarget.scope.split("/");
+                if (scopeParts.length >= 1) fsn = scopeParts[0].replace("전체","").trim() || fTarget.scope;
+            }
+            var fk = d.kpi||d.metrics||{};
+            // 예측 사유 분석에서 추세 추출
+            var reasonAnalysis = d["예측_사유_분석"]||d.예측_사유_분석;
+            var trendFromAnalysis = "";
+            if (reasonAnalysis && reasonAnalysis["시계열_분석"]) {
+                var tsA = reasonAnalysis["시계열_분석"];
+                if (tsA["추세_변화율"]) trendFromAnalysis = tsA["추세_변화율"];
+                else if (tsA["추세"]) trendFromAnalysis = tsA["추세"];
+            }
+            // 예측 사유 분석 파싱
+            var fa2 = [];
+            if (reasonAnalysis) {
+                if (reasonAnalysis["시계열_분석"]) fa2.push({title:"📊 시계열 분석", items: Object.entries(reasonAnalysis["시계열_분석"]).map(function(kv){return kv[0]+": "+kv[1];})});
+                if (reasonAnalysis["외부_요인_영향"]) fa2.push({title:"🌍 외부 요인", items: Object.entries(reasonAnalysis["외부_요인_영향"]).map(function(kv){return kv[0]+": "+kv[1];})});
+                if (reasonAnalysis["예측_신뢰도"]) fa2.push({title:"🎯 예측 신뢰도", items: Object.entries(reasonAnalysis["예측_신뢰도"]).map(function(kv){return kv[0]+": "+kv[1];})});
+                if (reasonAnalysis["핵심_예측_사유"]) fa2.push({title:"💡 핵심 사유", items: reasonAnalysis["핵심_예측_사유"]});
+            }
+            var avg = ft.length>0?(ft.reduce(function(s,r){return s+r.forecast;},0)/ft.length).toFixed(1):"-";
+            var pk = ft.length>0?ft.reduce(function(m,r){return r.forecast>m.forecast?r:m;},ft[0]):null;
+            localStorage.setItem("forecastData", JSON.stringify({
+                meta: "AI 예측 결과 | "+(fsn||"")+" / "+(fpn||"")+" | "+new Date().toLocaleString("ko-KR"),
+                storeName: fsn, productName: fpn,
+                kpi: { avg: avg, trend: fk.trend||trendFromAnalysis||"-", peak: pk?(pk.date||"").slice(5):"-", model: d.forecast_days ? d.forecast_days+"일" : (d.model||"AI") },
+                table: ft, analysis: fa2.length>0?fa2:[{title:"📊 분석 요약",items:["데이터 기반 예측 완료"]}]
+            }));
+            addDetailButton(msgDiv, "📊 예측 결과 상세 보기", "#0070F2", "#6B4FBB", "/demandforecasts/webapp/index.html", "forecastUpdate");
+            processed = true;
+        }
+
+        // 3. 이탈 예측 (run_churn_prediction)
+        if (tn === "run_churn_prediction" || d.high_risk_customers || d.high_risk_count) {
+            var rawCusts = d.high_risk_customers||d.churn_results||d.customers||[];
+            var custs = rawCusts.map(function(c) {
+                return { code: c.CUSTOMER_CODE||c.customer_code||c.code||"", name: c.NAME||c.customer_name||c.name||"", age: c.AGE_GROUP||c.age_group||c.age||"", membership: c.MEMBERSHIP_TYPE||c.membership_type||c.membership||"", city: c.CITY||c.city||"", probability: c.churn_probability||c.churn_score||c.probability||"", risk: c.churn_risk||c.risk||"", factor: c.churn_reason||c.main_factor||c.factor||"" };
+            });
+            var pf = d.metrics||d.performance||d.model_performance||{};
+            var fcts = d.top_features||d.factors||d.main_factors||[];
+            if (Array.isArray(fcts) && fcts.length > 0 && Array.isArray(fcts[0])) {
+                // top_features는 [[name, importance], ...] 형태
+                fcts = fcts.filter(function(f){return f[1]>0;}).map(function(f){return f[0]+": "+f[1];});
+            }
+            if (typeof fcts==='object'&&!Array.isArray(fcts)) fcts=Object.entries(fcts).map(function(kv){return kv[0]+": "+kv[1];});
+            var csn = d.store_name||d.storeName||"";
+            localStorage.setItem("churnPredictionData", JSON.stringify({
+                meta: "이탈 예측 | "+(csn||"전체")+" | "+new Date().toLocaleString("ko-KR"), storeName: csn,
+                totalCustomers: (d.total_customers||custs.length)+"명",
+                churnCustomers: (d.high_risk_count||custs.length)+"명",
+                churnRate: (d.high_risk_rate||d.churn_rate||"-")+"%", accuracy: pf.accuracy||"-",
+                performance: { accuracy: pf.accuracy||"-", precision: pf.precision||"-", recall: pf.recall||"-", f1: pf.f1||pf.f1_score||"-", auc: pf.auc_roc||pf.auc||"-" },
+                customers: custs, factors: fcts
+            }));
+            addDetailButton(msgDiv, "⚠️ 이탈 예측 상세 보기", "#D93025", "#7B2FF2", "/churnpredictions/webapp/index.html", "churnUpdate");
+            processed = true;
+        }
+
+        // 4. 이상 탐지 (run_anomaly_detection)
+        if (tn === "run_anomaly_detection" || d.top_anomalies || d.anomaly_count) {
+            var anomAnalysis = d["이상_탐지_분석"]||d.이상_탐지_분석||{};
+            // 이상_탐지_분석.이상_항목_상세 우선 사용 (한국어 키, 상품명 포함)
+            var rawItems = anomAnalysis["이상_항목_상세"]||d.top_anomalies||d.anomalies||[];
+            var ai = rawItems.map(function(a) {
+                return { date: a["날짜"]||(a.SALES_DATE||a.date||"").substring(0,10), product: a["상품명"]||a.PRODUCT_ID||a.product||"", qty: a["판매량"]||a.quantity||a.revenue||"", change: String(a["정상_범위_대비"]||a.revenue_zscore||a.change||"-"), type: a["유형"]||a.anomaly_type||a.type||"", severity: a["심각도"]||a.severity||"" };
+            });
+            var asn = anomAnalysis["점포명"]||d.store_name||d.storeName||"";
+            var ar = anomAnalysis["탐지_사유"]||d.reasons||[];
+            var arec = anomAnalysis["권고_사항"]||d.recommendations||[];
+            if(typeof ar==='string')ar=[ar]; if(typeof arec==='string')arec=[arec];
+            localStorage.setItem("salesAnomalyData", JSON.stringify({
+                meta: "이상 탐지 | "+(asn||"전체")+" | "+new Date().toLocaleString("ko-KR"), store: asn||"-",
+                target: anomAnalysis["분석_대상"]||d.model||"매출 이상 탐지", totalRecords: (d.input_records||"-")+"건",
+                anomalyCount: (d.anomaly_count||rawItems.length)+"건", anomalyRate: (d.anomaly_rate||"-")+"%",
+                byType: d.by_type||{}, bySeverity: d.by_severity||{},
+                items: ai, reasons: ar, recommendations: arec
+            }));
+            addDetailButton(msgDiv, "🚨 이상 탐지 상세 보기", "#E37400", "#D93025", "/salesanomalies/webapp/index.html", "anomalyUpdate");
+            processed = true;
+        }
+
+        // 5. 고객 세분화 (run_customer_segmentation)
+        if (tn === "run_customer_segmentation" || d.segments || d.customer_segments) {
+            var segs = d.segments||d.customer_segments||[];
+            // 세그먼트별 집계
+            var segSummary = {};
+            segs.forEach(function(s) {
+                var name = s.segment_name||s.segmentName||"Unknown";
+                if (!segSummary[name]) segSummary[name] = { count: 0, avgRfm: 0, totalRfm: 0 };
+                segSummary[name].count++;
+                segSummary[name].totalRfm += (s.rfm_score||s.rfmScore||0);
+            });
+            Object.keys(segSummary).forEach(function(k) { segSummary[k].avgRfm = (segSummary[k].totalRfm / segSummary[k].count).toFixed(1); });
+            var metrics = d.metrics||{};
+            localStorage.setItem("customerSegmentData", JSON.stringify({
+                meta: "고객 세분화 | "+new Date().toLocaleString("ko-KR"),
+                totalCustomers: segs.length+"명",
+                nClusters: metrics.n_clusters||Object.keys(segSummary).length,
+                silhouetteScore: metrics.silhouette_score||"-",
+                segmentSummary: segSummary,
+                segments: segs.slice(0, 50) // 상위 50명만
+            }));
+            addDetailButton(msgDiv, "👥 고객 세분화 상세 보기", "#188038", "#0070F2", "/customersegments/webapp/index.html", "segmentUpdate");
+            processed = true;
+        }
+    });
+    return processed;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 메시지 전송
+// ═══════════════════════════════════════════════════════════════
 async function sendChatMessage() {
     if (chatSending) return;
     const input = document.getElementById('chatInput');
@@ -417,14 +253,21 @@ async function sendChatMessage() {
         const response = await fetch('/chat/sendMessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, history: chatHistory })
+            body: JSON.stringify({ message: message, history: chatHistory })
         });
         const data = await response.json();
         if (data.success !== false && data.reply) {
-            appendMessage('assistant', data.reply);
+            var msgDiv = appendMessage('assistant', data.reply);
             chatHistory.push({ role: 'user', content: message });
             chatHistory.push({ role: 'assistant', content: data.reply });
             if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+
+            // toolData가 있으면 JSON 기반으로 처리 (정규식 불필요)
+            var toolData = data.toolData ? (typeof data.toolData === 'string' ? JSON.parse(data.toolData) : data.toolData) : null;
+            console.log("[DEBUG] toolData received:", toolData ? JSON.stringify(toolData).substring(0, 300) : "none");
+            if (toolData) {
+                processToolData(toolData, msgDiv);
+            }
         } else {
             appendMessage('system', '&#x26A0;&#xFE0F; ' + (data.error || '응답을 받을 수 없습니다.'));
         }
@@ -437,7 +280,9 @@ async function sendChatMessage() {
     }
 }
 
-// Chat Panel Resize (drag to resize)
+// ═══════════════════════════════════════════════════════════════
+// Chat Panel Resize
+// ═══════════════════════════════════════════════════════════════
 (function() {
     var handle = document.getElementById("chatResizeHandle");
     var panel = document.getElementById("chatPanel");

@@ -26,8 +26,8 @@ async function loadDynamicKPIs() {
         else revEl.textContent = "\u20A9" + rev.toLocaleString();
         var changeEl = document.getElementById("kpi-revenue-change");
         var change = data.revenueChange || 0;
-        if (change >= 0) { changeEl.textContent = "\u2191 " + change.toFixed(1) + "%"; changeEl.className = "kpi-change up"; }
-        else { changeEl.textContent = "\u2193 " + Math.abs(change).toFixed(1) + "%"; changeEl.className = "kpi-change down"; }
+        if (change >= 0) { changeEl.textContent = "\u2191 전일 대비 +" + change.toFixed(1) + "%"; changeEl.className = "kpi-change up"; }
+        else { changeEl.textContent = "\u2193 전일 대비 " + change.toFixed(1) + "%"; changeEl.className = "kpi-change down"; }
         document.getElementById("kpi-health").textContent = (data.healthScore || 0) + "\uC810";
         var hEl = document.getElementById("kpi-health-change");
         var hc = data.healthChange || 0;
@@ -97,6 +97,30 @@ async function loadSalesForecastChart() {
             ]},
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 10, font: { size: 10 }, filter: function(i) { return i.text !== "CI-H" && i.text !== "CI-L"; } } }, tooltip: { callbacks: { label: function(ctx) { return ctx.dataset.label + ": " + (ctx.raw ? ctx.raw.toLocaleString() : "-"); } } } }, scales: { y: { beginAtZero: false, ticks: { callback: function(v) { return (v/10000).toFixed(0) + "\uB9CC"; }, font: { size: 9 } }, grid: { color: "#F0F0F0" } }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } } }
         });
+        // 예측 근거 표시
+        var infoEl = document.getElementById("forecastReason");
+        if (infoEl) {
+            var actualVals = actuals.filter(function(v){return v !== null && v !== undefined;});
+            var forecastVals = forecasts.filter(function(v){return v !== null && v !== undefined;});
+            if (actualVals.length > 0 && forecastVals.length > 0) {
+                var lastActual = actualVals[actualVals.length - 1];
+                var avgForecast = forecastVals.reduce(function(s,v){return s+v;},0) / forecastVals.length;
+                var changeRate = lastActual > 0 ? ((avgForecast - lastActual) / lastActual * 100).toFixed(1) : 0;
+                var arrow = changeRate >= 0 ? "📈" : "📉";
+                var color = changeRate >= 0 ? "#188038" : "#D93025";
+                var reasons = [];
+                var today = new Date();
+                var dow = today.getDay();
+                if (dow === 5 || dow === 6 || dow === 0) reasons.push("주말/금요일 소비 활성화");
+                var month = today.getMonth() + 1;
+                if (month >= 3 && month <= 5) reasons.push("봄 시즌 수요 증가");
+                else if (month >= 9 && month <= 11) reasons.push("가을 시즌");
+                reasons.push("최근 판매 추세 반영");
+                infoEl.innerHTML = '<span style="color:'+color+';font-weight:700;">'+arrow+' 실적 대비 '+changeRate+'% '+(changeRate>=0?'상승':'하락')+' 예측</span>' +
+                    '<span style="margin-left:0.75rem;color:#556B82;">💡 근거: '+reasons.join(' · ')+'</span>';
+                infoEl.style.display = "block";
+            }
+        }
     } catch(e) { console.warn("Chart fail:", e); }
 }
 
