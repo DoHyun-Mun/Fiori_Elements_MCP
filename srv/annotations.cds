@@ -124,7 +124,7 @@ annotate service.Products with @(
     Data  : [
       { $Type: 'UI.DataField', Value: productCode, Label: '상품 코드' },
       { $Type: 'UI.DataField', Value: name,         Label: '상품명' },
-      { $Type: 'UI.DataField', Value: category_ID,  Label: '분류' },
+      { $Type: 'UI.DataField', Value: category.name,  Label: '분류' },
       { $Type: 'UI.DataField', Value: unit,         Label: '단위' },
       { $Type: 'UI.DataField', Value: safetyStock,  Label: '안전 재고' },
       { $Type: 'UI.DataField', Value: leadTime,     Label: '리드타임(일)' },
@@ -169,7 +169,7 @@ annotate service.Products with {
   category     @(
     title: '분류',
     Common.Text: category.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Categories',
@@ -264,7 +264,7 @@ annotate service.Inventories with @(
   UI.FieldGroup #ProductInfo : {
     $Type : 'UI.FieldGroupType',
     Data  : [
-      { $Type: 'UI.DataField', Value: product_ID,            Label: '상품' },
+      { $Type: 'UI.DataField', Value: product.name,            Label: '상품명' },
       { $Type: 'UI.DataField', Value: product.productCode,   Label: '상품 코드' },
       { $Type: 'UI.DataField', Value: product.name,          Label: '상품명' },
       { $Type: 'UI.DataField', Value: product.safetyStock,   Label: '안전 재고' }
@@ -274,7 +274,7 @@ annotate service.Inventories with @(
   UI.FieldGroup #StoreInfo : {
     $Type : 'UI.FieldGroupType',
     Data  : [
-      { $Type: 'UI.DataField', Value: store_ID,        Label: '점포' },
+      { $Type: 'UI.DataField', Value: store.name,        Label: '점포' },
       { $Type: 'UI.DataField', Value: store.storeCode,  Label: '점포 코드' },
       { $Type: 'UI.DataField', Value: store.name,       Label: '점포명' }
     ]
@@ -298,7 +298,7 @@ annotate service.Inventories with {
   product      @(
     title: '상품',
     Common.Text: product.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Products',
@@ -322,7 +322,7 @@ annotate service.Inventories with {
   store        @(
     title: '점포',
     Common.Text: store.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Stores',
@@ -605,7 +605,7 @@ annotate service.Materials with @(
       { $Type: 'UI.DataField', Value: materialType,   Label: '자재 유형' },
       { $Type: 'UI.DataField', Value: unit,           Label: '단위' },
       { $Type: 'UI.DataField', Value: unitPrice,      Label: '단가' },
-      { $Type: 'UI.DataField', Value: supplier_ID,    Label: '공급업체' },
+      { $Type: 'UI.DataField', Value: supplier.name,    Label: '공급업체' },
       { $Type: 'UI.DataField', Value: isActive,       Label: '활성 여부' },
       { $Type: 'UI.DataField', Value: description,    Label: '설명' }
     ]
@@ -641,7 +641,7 @@ annotate service.Materials with {
   supplier     @(
     title: '공급업체',
     Common.Text: supplier.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Suppliers',
@@ -709,8 +709,8 @@ annotate service.StoreProducts with @(
   UI.FieldGroup #BasicInfo : {
     $Type : 'UI.FieldGroupType',
     Data  : [
-      { $Type: 'UI.DataField', Value: store_ID,      Label: '점포' },
-      { $Type: 'UI.DataField', Value: product_ID,    Label: '상품' },
+      { $Type: 'UI.DataField', Value: store.name,      Label: '점포' },
+      { $Type: 'UI.DataField', Value: product.name,    Label: '상품명' },
       { $Type: 'UI.DataField', Value: sellingPrice,   Label: '판매가' },
       { $Type: 'UI.DataField', Value: costPrice,      Label: '원가' },
       { $Type: 'UI.DataField', Value: minStock,       Label: '최소 재고' },
@@ -737,7 +737,7 @@ annotate service.StoreProducts with {
   store        @(
     title: '점포',
     Common.Text: store.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Stores',
@@ -761,7 +761,7 @@ annotate service.StoreProducts with {
   product      @(
     title: '상품',
     Common.Text: product.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Products',
@@ -815,8 +815,8 @@ annotate service.ProductMaterials with @(
   UI.FieldGroup #BasicInfo : {
     $Type : 'UI.FieldGroupType',
     Data  : [
-      { $Type: 'UI.DataField', Value: product_ID,  Label: '상품' },
-      { $Type: 'UI.DataField', Value: material_ID,  Label: '자재' },
+      { $Type: 'UI.DataField', Value: product.name,  Label: '상품명' },
+      { $Type: 'UI.DataField', Value: material.name,  Label: '자재' },
       { $Type: 'UI.DataField', Value: quantity,     Label: '소요량' },
       { $Type: 'UI.DataField', Value: unit,         Label: '단위' }
     ]
@@ -835,12 +835,12 @@ annotate service.ProductMaterials with {
   product  @(
     title: '상품',
     Common.Text: product.name,
-    Common.TextArrangement: #TextFirst
+    Common.TextArrangement: #TextOnly
   );
   material @(
     title: '자재',
     Common.Text: material.name,
-    Common.TextArrangement: #TextFirst
+    Common.TextArrangement: #TextOnly
   );
 };
 
@@ -898,7 +898,7 @@ annotate service.PurchaseOrders with @(
     Data  : [
       { $Type: 'UI.DataField', Value: poNumber,     Label: '발주 번호' },
       { $Type: 'UI.DataField', Value: product_ID,   Label: '상품' },
-      { $Type: 'UI.DataField', Value: dc_ID,        Label: '물류센터(DC)' },
+      { $Type: 'UI.DataField', Value: dc.name,        Label: '물류센터(DC)' },
       { $Type: 'UI.DataField', Value: store_ID,     Label: '점포' },
       { $Type: 'UI.DataField', Value: supplier_ID,  Label: '공급업체' },
       { $Type: 'UI.DataField', Value: quantity,      Label: '수량' },
@@ -972,7 +972,7 @@ annotate service.PurchaseOrders with {
   product      @(
     title: '상품',
     Common.Text: product.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Products',
@@ -996,7 +996,7 @@ annotate service.PurchaseOrders with {
   store        @(
     title: '점포',
     Common.Text: store.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Stores',
@@ -1020,7 +1020,7 @@ annotate service.PurchaseOrders with {
   supplier     @(
     title: '공급업체',
     Common.Text: supplier.name,
-    Common.TextArrangement: #TextFirst,
+    Common.TextArrangement: #TextOnly,
     Common.ValueList : {
       $Type          : 'Common.ValueListType',
       CollectionPath : 'Suppliers',
@@ -1096,8 +1096,8 @@ annotate service.CustomerPurchases with @(
     {$Type:'UI.ReferenceFacet', ID:'Items', Label:'구매 품목', Target:'items/@UI.LineItem'}
   ],
   UI.FieldGroup #BasicInfo : {$Type:'UI.FieldGroupType', Data:[
-    {$Type:'UI.DataField', Value:purchaseNumber, Label:'구매번호'}, {$Type:'UI.DataField', Value:customer_ID, Label:'고객'},
-    {$Type:'UI.DataField', Value:store_ID, Label:'점포'}, {$Type:'UI.DataField', Value:purchaseDate, Label:'구매일시'},
+    {$Type:'UI.DataField', Value:purchaseNumber, Label:'구매번호'}, {$Type:'UI.DataField', Value:customer.name, Label:'고객'},
+    {$Type:'UI.DataField', Value:store.name, Label:'점포'}, {$Type:'UI.DataField', Value:purchaseDate, Label:'구매일시'},
     {$Type:'UI.DataField', Value:totalAmount, Label:'합계'}, {$Type:'UI.DataField', Value:paymentMethod, Label:'결제방법'},
     {$Type:'UI.DataField', Value:note, Label:'비고'}
   ]},

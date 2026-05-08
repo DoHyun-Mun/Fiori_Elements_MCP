@@ -54,7 +54,9 @@ annotate service.InboundOrders with @(
   ],
   UI.FieldGroup #BasicInfo : {$Type:'UI.FieldGroupType', Data:[
     {$Type:'UI.DataField', Value:orderNumber, Label:'오더번호'}, {$Type:'UI.DataField', Value:status, Label:'상태'},
-    {$Type:'UI.DataField', Value:supplier_ID, Label:'공급업체'}, {$Type:'UI.DataField', Value:dc_ID, Label:'물류센터'},
+    {$Type:'UI.DataField', Value:supplier.supplierCode, Label:'공급업체 코드'}, {$Type:'UI.DataField', Value:supplier.name, Label:'공급업체명'},
+    {$Type:'UI.DataField', Value:dc.dcCode, Label:'물류센터 코드'}, {$Type:'UI.DataField', Value:dc.name, Label:'물류센터명'},
+    {$Type:'UI.DataField', Value:purchaseOrder.poNumber, Label:'발주번호 (PO)'},
     {$Type:'UI.DataField', Value:orderDate, Label:'주문일'}, {$Type:'UI.DataField', Value:expectedDate, Label:'예정일'},
     {$Type:'UI.DataField', Value:arrivedDate, Label:'도착일'}, {$Type:'UI.DataField', Value:totalAmount, Label:'합계금액'},
     {$Type:'UI.DataField', Value:requestedBy, Label:'요청자'}, {$Type:'UI.DataField', Value:note, Label:'비고'}
@@ -79,6 +81,7 @@ annotate service.GoodsReceipts with @(
   UI.LineItem : [
     {$Type:'UI.DataField', Value:grNumber, Label:'GR번호', ![@HTML5.CssDefaults]:{width:'auto'}},
     {$Type:'UI.DataField', Value:status, Label:'상태', ![@HTML5.CssDefaults]:{width:'auto'}},
+    {$Type:'UI.DataField', Value:inboundOrder.purchaseOrder.poNumber, Label:'발주번호 (PO)', ![@HTML5.CssDefaults]:{width:'auto'}},
     {$Type:'UI.DataField', Value:dc.name, Label:'물류센터', ![@HTML5.CssDefaults]:{width:'auto'}},
     {$Type:'UI.DataField', Value:store.name, Label:'점포', ![@HTML5.CssDefaults]:{width:'auto'}},
     {$Type:'UI.DataField', Value:inboundOrder.orderNumber, Label:'입고오더 (IO)', ![@HTML5.CssDefaults]:{width:'auto'}},
@@ -93,8 +96,10 @@ annotate service.GoodsReceipts with @(
   ],
   UI.FieldGroup #BasicInfo : {$Type:'UI.FieldGroupType', Data:[
     {$Type:'UI.DataField', Value:grNumber, Label:'GR번호'}, {$Type:'UI.DataField', Value:status, Label:'상태'},
-    {$Type:'UI.DataField', Value:dc_ID, Label:'물류센터'}, {$Type:'UI.DataField', Value:store_ID, Label:'점포'},
-    {$Type:'UI.DataField', Value:inboundOrder_ID, Label:'입고오더'},
+    {$Type:'UI.DataField', Value:dc.dcCode, Label:'물류센터 코드'}, {$Type:'UI.DataField', Value:dc.name, Label:'물류센터명'},
+    {$Type:'UI.DataField', Value:store.storeCode, Label:'점포 코드'}, {$Type:'UI.DataField', Value:store.name, Label:'점포명'},
+    {$Type:'UI.DataField', Value:inboundOrder.orderNumber, Label:'입고오더 (IO)'},
+    {$Type:'UI.DataField', Value:inboundOrder.purchaseOrder.poNumber, Label:'발주번호 (PO)'},
     {$Type:'UI.DataField', Value:inspectedBy, Label:'검수자'}, {$Type:'UI.DataField', Value:inspectedAt, Label:'검수일시'},
     {$Type:'UI.DataField', Value:totalPassedQty, Label:'합격수량'}, {$Type:'UI.DataField', Value:totalRejectedQty, Label:'불합격수량'},
     {$Type:'UI.DataField', Value:rejectReason, Label:'불합격사유'}
@@ -134,7 +139,9 @@ annotate service.Invoices with @(
   ],
   UI.FieldGroup #BasicInfo : {$Type:'UI.FieldGroupType', Data:[
     {$Type:'UI.DataField', Value:invoiceNumber, Label:'인보이스번호'}, {$Type:'UI.DataField', Value:status, Label:'상태'},
-    {$Type:'UI.DataField', Value:supplier_ID, Label:'공급업체'}, {$Type:'UI.DataField', Value:goodsReceipt.grNumber, Label:'GR번호'},
+    {$Type:'UI.DataField', Value:supplier.supplierCode, Label:'공급업체 코드'}, {$Type:'UI.DataField', Value:supplier.name, Label:'공급업체명'},
+    {$Type:'UI.DataField', Value:goodsReceipt.grNumber, Label:'GR번호'},
+    {$Type:'UI.DataField', Value:purchaseOrder.poNumber, Label:'발주번호 (PO)'},
     {$Type:'UI.DataField', Value:invoiceDate, Label:'발행일'}, {$Type:'UI.DataField', Value:dueDate, Label:'만기일'},
     {$Type:'UI.DataField', Value:subtotal, Label:'공급가액'}, {$Type:'UI.DataField', Value:taxRate, Label:'세율(%)'},
     {$Type:'UI.DataField', Value:taxAmount, Label:'세액'}, {$Type:'UI.DataField', Value:totalAmount, Label:'합계'}
@@ -178,11 +185,14 @@ annotate service.TransferOrders with @(
   ],
   UI.FieldGroup #BasicInfo : {$Type:'UI.FieldGroupType', Data:[
     {$Type:'UI.DataField', Value:toNumber, Label:'배송번호'}, {$Type:'UI.DataField', Value:status, Label:'상태'},
-    {$Type:'UI.DataField', Value:dc_ID, Label:'물류센터'}, {$Type:'UI.DataField', Value:store_ID, Label:'점포'},
+    {$Type:'UI.DataField', Value:dc.dcCode, Label:'물류센터 코드'}, {$Type:'UI.DataField', Value:dc.name, Label:'물류센터명'},
+    {$Type:'UI.DataField', Value:store.storeCode, Label:'점포 코드'}, {$Type:'UI.DataField', Value:store.name, Label:'점포명'},
     {$Type:'UI.DataField', Value:priority, Label:'우선순위'}, {$Type:'UI.DataField', Value:createdDate, Label:'생성일'},
     {$Type:'UI.DataField', Value:pickedDate, Label:'피킹일'}, {$Type:'UI.DataField', Value:shippedDate, Label:'출하일'},
     {$Type:'UI.DataField', Value:deliveredDate, Label:'배송완료일'}, {$Type:'UI.DataField', Value:totalQty, Label:'총수량'},
-    {$Type:'UI.DataField', Value:carrier, Label:'운송업체'}, {$Type:'UI.DataField', Value:trackingNo, Label:'운송장번호'}
+    {$Type:'UI.DataField', Value:carrier, Label:'운송업체'}, {$Type:'UI.DataField', Value:trackingNo, Label:'운송장번호'},
+    {$Type:'UI.DataField', Value:storeReceipt.srNumber, Label:'점포입고 (SR)'},
+    {$Type:'UI.DataField', Value:storeReceipt.status, Label:'SR 상태'}
   ]},
   UI.PresentationVariant : {SortOrder:[{Property:createdDate, Descending:true}], Visualizations:['@UI.LineItem']},
   Capabilities : {InsertRestrictions:{Insertable:true}, UpdateRestrictions:{Updatable:true}, DeleteRestrictions:{Deletable:true}}
@@ -216,7 +226,10 @@ annotate service.StoreReceipts with @(
   ],
   UI.FieldGroup #BasicInfo : {$Type:'UI.FieldGroupType', Data:[
     {$Type:'UI.DataField', Value:srNumber, Label:'입고번호'}, {$Type:'UI.DataField', Value:status, Label:'상태'},
-    {$Type:'UI.DataField', Value:store_ID, Label:'점포'}, {$Type:'UI.DataField', Value:transferOrder_ID, Label:'배송지시'},
+    {$Type:'UI.DataField', Value:store.storeCode, Label:'점포 코드'}, {$Type:'UI.DataField', Value:store.name, Label:'점포명'},
+    {$Type:'UI.DataField', Value:transferOrder.toNumber, Label:'배송지시 (TO)'},
+    {$Type:'UI.DataField', Value:transferOrder.dc.name, Label:'출발 물류센터'},
+    {$Type:'UI.DataField', Value:transferOrder.carrier, Label:'운송업체'},
     {$Type:'UI.DataField', Value:receivedBy, Label:'수령자'}, {$Type:'UI.DataField', Value:receivedAt, Label:'수령일시'},
     {$Type:'UI.DataField', Value:totalReceivedQty, Label:'수령수량'}, {$Type:'UI.DataField', Value:totalDamagedQty, Label:'파손수량'},
     {$Type:'UI.DataField', Value:note, Label:'비고'}
