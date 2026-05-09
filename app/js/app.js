@@ -1,4 +1,10 @@
 let menuTree = [];
+// Menu Lucide icon map
+var MENU_ICONS={MASTER:"database",PROCURE:"shopping-cart",LOGISTICS:"truck",SALES:"trending-up",AI:"cpu",SYSTEM:"settings"};
+var SUB_ICONS={"CATEGORIES":"folder","PRODUCTS":"tag","MATERIALS":"settings","STORES":"home","STOREPRODUCTS":"grid","SUPPLIERS":"users","DC":"warehouse","PURCHASEORDERS":"clipboard","GOODS-RCPT":"check-circle","INVOICES":"file-text","TRANSFER-ORD":"truck","STORE-RCPT":"package","INVENTORIES":"bar-chart-2","CUSTOMERS":"user","CUSTPURCHASES":"shopping-bag","DAILYSALES":"trending-up","DEMAND-FCST":"activity","ORDER-REC":"target","CHURN-PRED":"alert-triangle","CUST-SEG":"pie-chart","SALES-ANOM":"zap","MENUS":"menu","ANOMALIES":"zap","CHURN":"alert-triangle","FORECASTS":"activity","SEGMENTS":"pie-chart","LOGISTICS":"truck","M-PARTNER":"users","P-SETTLE":"file-text"};
+function getMenuIcon(code,sz){var n=MENU_ICONS[code];if(n)return"<i data-lucide=\""+n+"\" class=\"menu-lucide\" style=\"width:"+(sz||15)+"px;height:"+(sz||15)+"px\"></i>";return"";}
+function getSubIcon(code,sz){var n=SUB_ICONS[code];if(n)return"<i data-lucide=\""+n+"\" class=\"menu-lucide\" style=\"width:"+(sz||14)+"px;height:"+(sz||14)+"px\"></i>";return"";}
+
 let activeTopMenuId = null;
 let salesChart, inventoryChart, ordersChart;
 
@@ -30,7 +36,7 @@ async function loadMenuData() {
 function renderTopMenu() {
     const bar = document.getElementById('topMenuBar');
     bar.innerHTML = menuTree.map(i =>
-        `<button class="top-menu-item" data-id="${i.ID}" onclick="selectTopMenu('${i.ID}')">${i.icon||'📁'} ${i.title}</button>`
+        `<button class="top-menu-item" data-id="${i.ID}" onclick="selectTopMenu('${i.ID}')">${getMenuIcon(i.code)}${i.title}</button>`
     ).join('');
 }
 
@@ -53,20 +59,21 @@ function selectTopMenu(id) {
 }
 
 function renderSidebar(mids) {
-    const sb = document.getElementById('sidebar');
+    const sb = document.getElementById('sidebarMenuContent') || document.getElementById('sidebar');
     if (!mids || !mids.length) { sb.innerHTML = '<div style="padding:1.5rem 1.1rem;color:var(--text-tertiary);font-size:0.8rem;text-align:center;">하위 메뉴가 없습니다</div>'; return; }
     let h = '';
     mids.forEach(m => {
-        h += `<div class="nav-group-title"><span class="group-icon">${m.icon||'📁'}</span> ${m.title}</div>`;
+        h += `<div class="nav-group-title">${m.title}</div>`;
         if (m.children && m.children.length) {
             m.children.forEach(s => {
-                h += `<a class="nav-item" data-id="${s.ID}" onclick="selectSubMenu('${s.ID}','${(s.url||'').replace(/'/g,"\\'")}')"><span class="nav-icon">${s.icon||'📄'}</span><span class="nav-text">${s.title}</span></a>`;
+                h += `<a class="nav-item" data-id="${s.ID}" onclick="selectSubMenu('${s.ID}','${(s.url||'').replace(/'/g,"\\'")}')">${getSubIcon(s.code)}<span class="nav-text">${s.title}</span></a>`;
             });
         } else if (m.url) {
-            h += `<a class="nav-item" data-id="${m.ID}" onclick="selectSubMenu('${m.ID}','${(m.url||'').replace(/'/g,"\\'")}')"><span class="nav-icon">📄</span><span class="nav-text">${m.title} 열기</span></a>`;
+            h += `<a class="nav-item" data-id="${m.ID}" onclick="selectSubMenu('${m.ID}','${(m.url||'').replace(/'/g,"\\'")}')"><span class="nav-text">${m.title}</span></a>`;
         }
     });
     sb.innerHTML = h;
+    if(window.lucide)lucide.createIcons();
 }
 
 function selectSubMenu(id, url) {
@@ -87,9 +94,11 @@ function showContentFrame(url) {
 }
 
 function toggleSidebar() {
-    const sb = document.getElementById('sidebar'), mn = document.getElementById('main');
-    if (window.innerWidth <= 768) sb.classList.toggle('mobile-open');
+    var sb = document.getElementById('sidebar'), mn = document.getElementById('main');
+    var isCollapsing = !sb.classList.contains('collapsed');
+    if (window.innerWidth <= 768) { sb.classList.toggle('mobile-open'); }
     else { sb.classList.toggle('collapsed'); mn.classList.toggle('expanded'); }
+    document.querySelector('.shell-bar').style.left = isCollapsing ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)';
 }
 
 document.addEventListener("DOMContentLoaded", () => { loadMenuData(); loadDashboardData(); toggleChat(); });
