@@ -219,12 +219,15 @@ function processToolData(toolData, msgDiv) {
             });
             Object.keys(segSummary).forEach(function(k) { segSummary[k].avgRfm = (segSummary[k].totalRfm / segSummary[k].count).toFixed(1); });
             var metrics = d.metrics||{};
+            // AI 생성 마케팅 전략 (segment_meta)
+            var segMeta = d.segment_meta||d["segment_meta"]||null;
             localStorage.setItem("customerSegmentData", JSON.stringify({
                 meta: "고객 세분화 | "+new Date().toLocaleString("ko-KR"),
                 totalCustomers: segs.length+"명",
                 nClusters: metrics.n_clusters||Object.keys(segSummary).length,
                 silhouetteScore: metrics.silhouette_score||"-",
                 segmentSummary: segSummary,
+                segmentMeta: segMeta,
                 segments: segs.slice(0, 50) // 상위 50명만
             }));
             addDetailButton(msgDiv, "👥 고객 세분화 상세 보기", "#188038", "#0070F2", "/customersegments/webapp/index.html", "segmentUpdate");

@@ -23,10 +23,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F5F6FA;color:#1D2D
 .seg-card{background:white;border:1px solid #E5E8ED;border-radius:12px;padding:1.1rem;position:relative;overflow:hidden;transition:box-shadow 0.2s}
 .seg-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08)}
 .seg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
-.seg-card.vip::before{background:linear-gradient(90deg,#FFD700,#FFA000)}
-.seg-card.loyal::before{background:linear-gradient(90deg,#4CAF50,#2E7D32)}
-.seg-card.atrisk::before{background:linear-gradient(90deg,#FF9800,#E65100)}
-.seg-card.new::before{background:linear-gradient(90deg,#2196F3,#0D47A1)}
+.seg-card.vip::before{background:linear-gradient(90deg,#FF9800,#E65100)}
+.seg-card.loyal::before{background:linear-gradient(90deg,#FFD700,#FFA000)}
+.seg-card.atrisk::before{background:linear-gradient(90deg,#2196F3,#0D47A1)}
+.seg-card.new::before{background:linear-gradient(90deg,#66BB6A,#388E3C)}
 .seg-card.grower::before{background:linear-gradient(90deg,#66BB6A,#388E3C)}
 .seg-top{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem}
 .seg-icon{font-size:1.5rem}
@@ -116,44 +116,48 @@ tr:hover td{background:#F8F9FB}
 </div>
 
 <script>
-// 세그먼트별 메타 정보 (설명 + 전략 + 기대효과)
-var SEG_META = {
-    "VIP_Champions": {
-        icon: "👑", color: "vip",
-        desc: "최근 방문 빈도 높고, 구매 금액이 가장 큰 핵심 고객군입니다. 매출의 핵심 동력이며 이탈 시 영향이 큽니다.",
-        strategies: ["프리미엄 리워드 프로그램 (VIP 전용 할인/사은품)", "신상품 우선 체험 초대", "1:1 전담 매니저 배정", "생일/기념일 특별 혜택"],
-        effect: "기대효과: 객단가 +15%, LTV 극대화, 자연 추천으로 신규 유입",
-        action: "VIP 전용 이벤트 초대 발송", channel: "카카오톡/문자", kpi: "재구매율 95%↑", priority: "high"
-    },
-    "Loyal_Regulars": {
-        icon: "💚", color: "loyal",
-        desc: "꾸준히 방문하고 안정적으로 구매하는 충성 고객군입니다. VIP로 업그레이드 가능성이 높은 잠재 우수 고객입니다.",
-        strategies: ["멤버십 등급 업그레이드 유도 (다음 등급까지 N원!)", "크로스셀 추천 (연관 상품)", "친구 추천 보상 프로그램", "정기 구매 구독 할인"],
-        effect: "기대효과: VIP 전환율 +20%, 크로스셀로 객단가 +10%",
-        action: "등급 업그레이드 안내 + 크로스셀 쿠폰", channel: "앱푸시/이메일", kpi: "VIP 전환 20%↑", priority: "medium"
-    },
-    "At_Risk": {
-        icon: "⚠️", color: "atrisk",
-        desc: "한때 활발했으나 최근 방문이 줄어든 이탈 위험 고객군입니다. 즉각적인 재활성화 캠페인이 필요합니다.",
-        strategies: ["\"보고싶어요\" 개인화 메시지 발송", "재방문 시 특별 할인 쿠폰 (30% OFF)", "과거 구매 상품 재입고/신상 알림", "설문조사로 이탈 사유 파악"],
-        effect: "기대효과: 재방문율 +25%, 이탈 방지 → 연간 매출 손실 최소화",
-        action: "재방문 쿠폰(30%) + 개인화 메시지", channel: "카카오톡/문자", kpi: "재방문율 25%↑", priority: "urgent"
-    },
-    "New_Customers": {
-        icon: "🆕", color: "new",
-        desc: "최근 신규 가입하거나 첫 구매를 한 고객군입니다. 초기 경험이 향후 충성도를 결정합니다.",
-        strategies: ["웰컴 할인 쿠폰 (첫 재구매 20% OFF)", "온보딩 가이드 (인기 상품/혜택 안내)", "2회차 구매 리워드 포인트 2배", "카테고리별 추천 상품 큐레이션"],
-        effect: "기대효과: 2회차 구매 전환율 +30%, 초기 이탈 방지",
-        action: "웰컴 시리즈 자동 발송 (D+1, D+3, D+7)", channel: "이메일/앱푸시", kpi: "2회 구매율 30%↑", priority: "medium"
-    },
-    "Potential_Growers": {
-        icon: "🌱", color: "grower",
-        desc: "구매 빈도와 금액은 아직 낮지만 최근 활동이 활발하여 성장 가능성이 큰 고객군입니다. 적절한 육성 전략으로 Loyal/VIP로 전환 가능합니다.",
-        strategies: ["구매 금액별 단계 리워드 (3만원↑ 시 적립 2배)", "관심 카테고리 기반 큐레이션 할인", "구매 횟수 마일스톤 보상 (5회 달성 시 10% 쿠폰)", "리뷰 작성 보상 포인트 (참여 유도)"],
-        effect: "기대효과: 구매 빈도 +40%, 객단가 +20%, 6개월 내 Loyal 전환율 25%",
-        action: "성장 촉진 프로모션 (단계별 리워드)", channel: "앱푸시/이메일", kpi: "구매빈도 40%↑", priority: "medium"
-    }
+// 세그먼트별 메타 정보 - AI 응답(segment_meta)이 있으면 그걸 우선 사용, 없으면 아래 fallback 사용
+var SEG_META_FALLBACK = {
+    "VIP_Champions": { icon: "👑", color: "vip", desc: "핵심 충성 고객군", strategies: [], effect: "", action: "", channel: "", kpi: "", priority: "high" },
+    "Loyal_Regulars": { icon: "💚", color: "loyal", desc: "안정적 충성 고객군", strategies: [], effect: "", action: "", channel: "", kpi: "", priority: "medium" },
+    "At_Risk": { icon: "⚠️", color: "atrisk", desc: "이탈 위험 고객군", strategies: [], effect: "", action: "", channel: "", kpi: "", priority: "urgent" },
+    "New_Customers": { icon: "🆕", color: "new", desc: "신규 고객군", strategies: [], effect: "", action: "", channel: "", kpi: "", priority: "medium" },
+    "Potential_Growers": { icon: "🌱", color: "grower", desc: "성장 가능성 고객군", strategies: [], effect: "", action: "", channel: "", kpi: "", priority: "medium" }
 };
+
+// 세그먼트 이름 → 아이콘/컬러 매핑
+var SEG_STYLE = {
+    "VIP_Champions": { icon: "👑", color: "vip" },
+    "Loyal_Regulars": { icon: "💚", color: "loyal" },
+    "At_Risk": { icon: "⚠️", color: "atrisk" },
+    "New_Customers": { icon: "🆕", color: "new" },
+    "Potential_Growers": { icon: "🌱", color: "grower" }
+};
+
+// AI segment_meta를 화면용 메타로 변환
+function buildSegMeta(aiMeta) {
+    if (!aiMeta) return SEG_META_FALLBACK;
+    var result = {};
+    Object.keys(aiMeta).forEach(function(name) {
+        var ai = aiMeta[name];
+        var style = SEG_STYLE[name] || { icon: "📊", color: "new" };
+        var priorityMap = { 1: "high", 2: "medium", 3: "medium", 4: "urgent", 5: "low" };
+        result[name] = {
+            icon: style.icon,
+            color: style.color,
+            desc: ai.description || "",
+            strategies: [ai.key_action || ""],
+            effect: ai.expected_effect ? "기대효과: " + ai.expected_effect : "",
+            action: ai.key_action || "",
+            channel: ai.channel || "",
+            kpi: ai.kpi_target || "",
+            priority: priorityMap[ai.priority] || "medium",
+            avgRfm: ai.avg_rfm || null,
+            customerCount: ai.customer_count || null
+        };
+    });
+    return result;
+}
 
 function loadData() {
     var raw = localStorage.getItem("customerSegmentData");
@@ -173,31 +177,41 @@ function render(d) {
     document.getElementById("kSilhouette").textContent = d.silhouetteScore || "-";
 
     var summary = d.segmentSummary || {};
+    // AI segment_meta가 있으면 동적으로 SEG_META 빌드, 없으면 fallback 사용
+    var SEG_META = buildSegMeta(d.segmentMeta);
+
     // At Risk 수 계산
     var atRiskCount = (summary["At_Risk"] ? summary["At_Risk"].count : 0);
     document.getElementById("kAtRisk").textContent = atRiskCount + "명";
 
-    // 세그먼트 카드 렌더링
+    // 세그먼트 카드 렌더링 (priority 기준 정렬)
+    var sortedNames = Object.keys(summary).sort(function(a, b) {
+        var pa = SEG_META[a] ? (SEG_META[a].priority === "high" ? 1 : SEG_META[a].priority === "urgent" ? 0 : 2) : 9;
+        var pb = SEG_META[b] ? (SEG_META[b].priority === "high" ? 1 : SEG_META[b].priority === "urgent" ? 0 : 2) : 9;
+        return pa - pb;
+    });
+
     var grid = document.getElementById("segGrid");
-    grid.innerHTML = Object.keys(summary).map(function(name) {
+    grid.innerHTML = sortedNames.map(function(name) {
         var s = summary[name];
         var meta = SEG_META[name] || { icon:"📊", color:"new", desc:"기타 세그먼트", strategies:[], effect:"", action:"", channel:"", kpi:"", priority:"low" };
-        var stratHtml = meta.strategies.map(function(st) { return "<li>" + st + "</li>"; }).join("");
+        var stratHtml = meta.strategies.filter(function(st){return st;}).map(function(st) { return "<li>" + st + "</li>"; }).join("");
         return '<div class="seg-card ' + meta.color + '">' +
-            '<div class="seg-top"><span class="seg-icon">' + meta.icon + '</span><span class="seg-name">' + name.replace(/_/g, ' ') + '</span><span class="seg-count">' + s.count + '명</span></div>' +
+            '<div class="seg-top"><span class="seg-icon">' + meta.icon + '</span><span class="seg-name">' + name.replace(/_/g, ' ') + '</span><span class="seg-count">' + (meta.customerCount || s.count) + '명</span></div>' +
             '<div class="seg-desc">' + meta.desc + '</div>' +
-            '<div class="seg-strategy"><h4>📌 마케팅 전략</h4><ul>' + stratHtml + '</ul></div>' +
-            '<div class="seg-effect">' + meta.effect + '</div>' +
-            '<div class="seg-rfm"><div class="rfm-item"><div class="rfm-val">' + s.avgRfm + '</div><div class="rfm-lbl">평균 RFM</div></div></div>' +
-            '</div>';
+            (stratHtml ? '<div class="seg-strategy"><h4>📌 핵심 액션</h4><ul>' + stratHtml + '</ul></div>' : '') +
+            (meta.effect ? '<div class="seg-effect">' + meta.effect + '</div>' : '') +
+            '<div class="seg-rfm"><div class="rfm-item"><div class="rfm-val">' + (meta.avgRfm || s.avgRfm) + '</div><div class="rfm-lbl">평균 RFM</div></div>' +
+            (meta.channel ? '<div class="rfm-item"><div class="rfm-val" style="font-size:0.65rem;">' + meta.channel + '</div><div class="rfm-lbl">채널</div></div>' : '') +
+            '</div></div>';
     }).join("");
 
     // 액션 플랜 테이블
     var actionBody = document.getElementById("actionBody");
-    actionBody.innerHTML = Object.keys(SEG_META).map(function(name) {
+    actionBody.innerHTML = sortedNames.map(function(name) {
         var meta = SEG_META[name];
-        if (!summary[name]) return "";
-        return '<tr><td><strong>' + meta.icon + ' ' + name.replace(/_/g,' ') + '</strong> (' + summary[name].count + '명)</td><td>' + meta.action + '</td><td>' + meta.channel + '</td><td>' + meta.kpi + '</td><td><span class="priority-badge ' + meta.priority + '">' + meta.priority.toUpperCase() + '</span></td></tr>';
+        if (!meta || !summary[name]) return "";
+        return '<tr><td><strong>' + meta.icon + ' ' + name.replace(/_/g,' ') + '</strong> (' + (meta.customerCount || summary[name].count) + '명)</td><td>' + (meta.action||"-") + '</td><td>' + (meta.channel||"-") + '</td><td>' + (meta.kpi||"-") + '</td><td><span class="priority-badge ' + meta.priority + '">' + meta.priority.toUpperCase() + '</span></td></tr>';
     }).join("");
 
     // 고객 상세 테이블
@@ -206,7 +220,7 @@ function render(d) {
         tbody.innerHTML = d.segments.map(function(s) {
             var name = s.segment_name || s.segmentName || "";
             var meta = SEG_META[name] || {};
-            var shortAction = meta.action ? meta.action.substring(0, 25) + "..." : "-";
+            var shortAction = meta.action ? meta.action.substring(0, 30) + "..." : "-";
             return '<tr><td><span class="seg-badge ' + name + '">' + name.replace(/_/g,' ') + '</span></td><td>' + (s.recency_score||s.recencyScore||"-") + '</td><td>' + (s.frequency_score||s.frequencyScore||"-") + '</td><td>' + (s.monetary_score||s.monetaryScore||"-") + '</td><td><strong>' + (s.rfm_score||s.rfmScore||"-") + '</strong></td><td style="font-size:0.65rem;color:#556B82;">' + shortAction + '</td></tr>';
         }).join("");
     }
