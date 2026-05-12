@@ -135,24 +135,31 @@ tr:hover td{background:#F8F9FB}
 </div>
 </div>
 
+<!-- 예측 사유 분석 (차트 위) -->
+<div class="analysis-section">
+<h3>📝 예측 사유 분석</h3>
+<div id="analysisGrid" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+<!-- 외부 요인 수집 (분석 안에 통합) -->
+<div id="extFactorsSection" style="display:none;margin-top:0.6rem;">
+<div style="font-size:0.72rem;font-weight:600;margin-bottom:0.3rem;">🌍 외부 요인 (수집)</div>
+<div id="extFactorsChips" style="display:flex;flex-wrap:wrap;gap:0.3rem;"></div>
+</div>
+</div>
+
 <!-- 차트 -->
 <div class="chart-section">
 <h3>📈 예측 추이 차트</h3>
 <div class="chart-wrap"><canvas id="forecastChart"></canvas></div>
 </div>
 
-<!-- 예측 사유 분석 -->
-<div class="analysis-section">
-<h3>📝 예측 사유 분석</h3>
-<div class="analysis-grid" id="analysisGrid"></div>
-</div>
+
 
 <!-- 데이터 테이블 -->
 <div class="table-section">
 <h3>📋 예측 데이터 테이블</h3>
 <div style="max-height:220px;overflow-y:auto;">
 <table id="forecastTable">
-<thead><tr><th>날짜</th><th>예측 판매량</th><th>하한값</th><th>상한값</th></tr></thead>
+<thead><tr><th>날짜</th><th>ML 예측</th><th>RPT-1</th><th>하한</th><th>상한</th></tr></thead>
 <tbody></tbody>
 </table>
 </div>
@@ -294,26 +301,70 @@ function renderForecast(data) {
         var forecasts = data.table.map(function(r){return r.forecast;});
         var lows = data.table.map(function(r){return r.low;});
         var highs = data.table.map(function(r){return r.high;});
+
+        // RPT-1 데이터를 차트에 매핑 (날짜 기준으로 매칭)
+        var rpt1Data = labels.map(function(date) {
+            if (data.rpt1 && data.rpt1.predictions) {
+                var match = data.rpt1.predictions.find(function(p) { return p.date === date; });
+                return match ? match.qty : null;
+            }
+            return null;
+        });
+
+        var datasets = [
+            { label: 'ML 예측', data: forecasts, borderColor: '#0070F2', backgroundColor: 'rgba(0,112,242,0.05)', borderWidth: 2.5, pointRadius: 3, tension: 0.3, fill: false },
+            { label: 'RPT-1', data: rpt1Data, borderColor: '#7B2FF2', backgroundColor: 'rgba(123,47,242,0.05)', borderWidth: 2, borderDash: [5,3], pointRadius: 4, pointBackgroundColor: '#7B2FF2', tension: 0.3, fill: false, spanGaps: false },
+            { label: '상한', data: highs, borderColor: 'rgba(0,112,242,0.3)', borderWidth: 1, borderDash: [4,3], pointRadius: 0, tension: 0.3, fill: '+1' },
+            { label: '하한', data: lows, borderColor: 'rgba(0,112,242,0.3)', backgroundColor: 'rgba(0,112,242,0.08)', borderWidth: 1, borderDash: [4,3], pointRadius: 0, tension: 0.3, fill: '-1' }
+        ];
+
         if (forecastChartInstance) forecastChartInstance.destroy();
         forecastChartInstance = new Chart(document.getElementById('forecastChart'), {
             type: 'line',
-            data: { labels: labels, datasets: [
-                { label: '예측', data: forecasts, borderColor: '#0070F2', backgroundColor: 'rgba(0,112,242,0.05)', borderWidth: 2.5, pointRadius: 3, tension: 0.3, fill: false },
-                { label: '상한', data: highs, borderColor: 'rgba(0,112,242,0.3)', borderWidth: 1, borderDash: [4,3], pointRadius: 0, tension: 0.3, fill: '+1' },
-                { label: '하한', data: lows, borderColor: 'rgba(0,112,242,0.3)', backgroundColor: 'rgba(0,112,242,0.08)', borderWidth: 1, borderDash: [4,3], pointRadius: 0, tension: 0.3, fill: '-1' }
-            ]},
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } }, scales: { y: { beginAtZero: true, grid: { color: '#F0F0F0' } }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } } }
+            data: { labels: labels, datasets: datasets },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 }, filter: function(item) { return item.text !== '상한' && item.text !== '하한'; } } } }, scales: { y: { beginAtZero: true, max: Math.round(Math.max.apply(null, forecasts) * 2), grid: { color: '#F0F0F0' } }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } } }
         });
-        // Table
+        // Table (ML + RPT-1 합친 테이블)
         var tbody = document.querySelector('#forecastTable tbody');
-        tbody.innerHTML = data.table.map(function(r) { return '<tr><td>'+r.date+'</td><td><strong>'+r.forecast+'</strong></td><td>'+r.low+'</td><td>'+r.high+'</td></tr>'; }).join('');
+        tbody.innerHTML = data.table.map(function(r) {
+            var rptVal = '-';
+            if (data.rpt1 && data.rpt1.predictions) {
+                var rptMatch = data.rpt1.predictions.find(function(p) { return p.date === r.date; });
+                if (rptMatch) rptVal = '<strong>'+rptMatch.qty+'</strong>';
+            }
+            return '<tr><td>'+r.date+'</td><td><strong>'+r.forecast+'</strong></td><td>'+rptVal+'</td><td>'+r.low+'</td><td>'+r.high+'</td></tr>';
+        }).join('');
     }
-    // Analysis
+    // Analysis — 칩/pill 스타일로 표시
     if (data.analysis) {
         var grid = document.getElementById('analysisGrid');
+        var chipStyle = 'display:inline-block;padding:4px 10px;background:#F0F2F5;border-radius:16px;font-size:0.68rem;color:#1D2D3E;margin:2px 3px;';
         grid.innerHTML = data.analysis.map(function(section) {
-            return '<div class="analysis-card"><h4>'+section.title+'</h4><ul>'+section.items.map(function(item){return '<li>'+item+'</li>';}).join('')+'</ul></div>';
+            var iconMap = {"📊":"","🌍":"background:#E8F5E9;","🎯":"background:#EBF3FE;","💡":"background:#F3E8FF;"};
+            var sIcon = section.title.charAt(0) === "📊" || section.title.indexOf("시계열") !== -1 ? "" :
+                        section.title.indexOf("외부") !== -1 ? "background:#E8F5E9;" :
+                        section.title.indexOf("신뢰") !== -1 ? "background:#EBF3FE;" : "background:#F3E8FF;";
+            var chips = section.items.map(function(item) {
+                return '<span style="'+chipStyle+sIcon+'">'+item+'</span>';
+            }).join('');
+            return '<div style="margin-bottom:0.6rem;"><div style="font-size:0.72rem;font-weight:600;margin-bottom:0.3rem;">'+section.title+'</div><div style="display:flex;flex-wrap:wrap;gap:0.2rem;">'+chips+'</div></div>';
         }).join('');
+    }
+
+
+    // 외부 요인 수집 데이터 (칩 스타일)
+    if (data.externalFactors) {
+        var extSection = document.getElementById('extFactorsSection');
+        if (extSection) {
+            extSection.style.display = 'block';
+            var chipStyle2 = 'display:inline-block;padding:4px 10px;border-radius:16px;font-size:0.68rem;color:#1D2D3E;margin:2px 3px;';
+            var chips2 = [];
+            var ef = data.externalFactors;
+            if (ef.weather) chips2.push('<span style="'+chipStyle2+'background:#F0F2F5;">🌤️ '+ef.weather.temperature+'°C, 습도 '+ef.weather.humidity+'%</span>');
+            if (ef.news) chips2.push('<span style="'+chipStyle2+'background:#F3E8FF;">📰 '+ef.news.keyword+' ('+ef.news.count+'건)</span>');
+            if (ef.holidays && ef.holidays.upcoming && ef.holidays.upcoming.length > 0) chips2.push('<span style="'+chipStyle2+'background:#FEF3E0;">🗓️ '+ef.holidays.upcoming[0].name+'('+ef.holidays.upcoming[0].date.slice(5)+')</span>');
+            document.getElementById('extFactorsChips').innerHTML = chips2.join('') || '-';
+        }
     }
 }
 

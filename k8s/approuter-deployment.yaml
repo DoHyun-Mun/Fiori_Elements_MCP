@@ -29,7 +29,9 @@ spec:
             - name: PORT
               value: "5000"
             - name: destinations
-              value: '[{"name":"cap-backend","url":"http://store-pjt:4004","forwardAuthToken":true}]'
+              value: '[{"name":"cap-backend","url":"http://store-pjt:4004","forwardAuthToken":true,"timeout":120000}]'
+            - name: INCOMING_CONNECTION_TIMEOUT
+              value: "120000"
             - name: EXTERNAL_REVERSE_PROXY
               value: "true"
             - name: SERVICE_BINDING_ROOT

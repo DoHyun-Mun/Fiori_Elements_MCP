@@ -77,7 +77,7 @@ function processToolData(toolData, msgDiv) {
             var mlRec = d.ML_예측_발주추천 || d["ML_예측_발주추천"];
             if (mlRec && mlRec.recommendations) {
                 recTable = mlRec.recommendations.map(function(r) {
-                    return { product: r.product_name||r.name||"", currentStock: r.current_stock||0, mlDemand: r.ml_demand||r.daily_demand||null, rptDemand: r.forecast_daily||r.rpt_demand||null, diff: r.forecast_diff_pct ? r.forecast_diff_pct+"%" : null, recommendQty: r.recommended_qty||r.quantity||0, urgency: r.urgency||r.priority||"MEDIUM" };
+                    return { product: r.product_name||r.name||"", currentStock: r.current_stock||0, mlDemand: r.ml_demand||r.daily_demand||null, rptDemand: r.forecast_daily||r.rpt_demand||null, diff: r.forecast_diff_pct || null, recommendQty: r.recommended_qty||r.quantity||0, urgency: r.urgency||r.priority||"MEDIUM" };
                 });
             }
             var analysisItems = [];
@@ -101,11 +101,13 @@ function processToolData(toolData, msgDiv) {
             var judge = d["AI_종합_판단"]||d.AI_종합_판단||{};
             var rpt = d["RPT1_AI_예측"]||d.RPT1_AI_예측||{};
             var fa = d.filter_applied||{};
-            var sn = fa.store_id||d.store_name||"";
+            // 점포명: filter_applied.store_id가 UUID일 수 있으므로, recommendations에서 store_name 추출 우선
+            var mlRecs = (mlRec && mlRec.recommendations) || [];
+            var sn = (mlRecs.length > 0 && mlRecs[0].store_name) ? mlRecs[0].store_name : (fa.store_id||d.store_name||"");
             localStorage.setItem("orderRecommendationData", JSON.stringify({
                 meta: "AI 발주 추천 | "+(sn||"전체")+" | "+new Date().toLocaleString("ko-KR"), storeName: sn, summary: d.summary||{}, table: recTable,
-                timeseries: { avg7d: parseFloat(judge["ML_일평균"]||"0"), avg30d: 0, trend: judge["차이율"]||"" },
-                rpt: { totalDemand7d: rpt.predictions?(rpt.predictions.length*parseFloat(judge["RPT1_일평균"]||"0")):0, dailyAvg: parseFloat(judge["RPT1_일평균"]||"0") },
+                timeseries: {},
+                rpt: {},
                 external: { day: ext["요일"]||"", season: ext["계절"]||"", news: ext["뉴스_트렌드"]||"", weather: ext["날씨"]||"", holiday: ext["공휴일"]||"", payday: ext["급여일"]||"" },
                 analysis: analysisItems, reasons: [],
                 aiJudgment: { conclusion: judge["결론"]||"", confidence: judge["신뢰도"]||"", recommendation: judge["권고"]||"" }
@@ -147,11 +149,17 @@ function processToolData(toolData, msgDiv) {
             }
             var avg = ft.length>0?(ft.reduce(function(s,r){return s+r.forecast;},0)/ft.length).toFixed(1):"-";
             var pk = ft.length>0?ft.reduce(function(m,r){return r.forecast>m.forecast?r:m;},ft[0]):null;
+            // RPT-1 예측 데이터
+            var rptForecast = d["RPT1_AI_예측"]||d.RPT1_AI_예측||null;
+            // 외부 요인 수집 데이터
+            var extFactors = d.external_factors_collected||d["external_factors_collected"]||null;
             localStorage.setItem("forecastData", JSON.stringify({
                 meta: "AI 예측 결과 | "+(fsn||"")+" / "+(fpn||"")+" | "+new Date().toLocaleString("ko-KR"),
                 storeName: fsn, productName: fpn,
-                kpi: { avg: avg, trend: fk.trend||trendFromAnalysis||"-", peak: pk?(pk.date||"").slice(5):"-", model: d.forecast_days ? d.forecast_days+"일" : (d.model||"AI") },
-                table: ft, analysis: fa2.length>0?fa2:[{title:"📊 분석 요약",items:["데이터 기반 예측 완료"]}]
+                kpi: { avg: avg, trend: fk.trend||trendFromAnalysis||"-", peak: pk?(pk.date||"").slice(5):"-", model: d.model_name||d.forecast_days ? d.forecast_days+"일" : (d.model||"AI") },
+                table: ft, analysis: fa2.length>0?fa2:[{title:"📊 분석 요약",items:["데이터 기반 예측 완료"]}],
+                rpt1: rptForecast,
+                externalFactors: extFactors
             }));
             addDetailButton(msgDiv, "📊 예측 결과 상세 보기", "#0070F2", "#6B4FBB", "/demandforecasts/webapp/index.html", "forecastUpdate");
             processed = true;

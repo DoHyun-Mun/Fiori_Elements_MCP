@@ -1,13 +1,17 @@
 {
   "welcomeFile": "/index.html",
   "authenticationMethod": "route",
+  "responseHeaders": [
+    { "name": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" }
+  ],
   "routes": [
     {
       "source": "^/chat/(.*)$",
       "target": "/chat/$1",
       "destination": "cap-backend",
       "authenticationType": "xsuaa",
-      "csrfProtection": false
+      "csrfProtection": false,
+      "timeout": 120000
     },
     {
       "source": "^/odata/v4/(.*)$",
