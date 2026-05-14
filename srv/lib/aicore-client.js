@@ -75,7 +75,7 @@ async function chat(userMessage, history = []) {
             현재 날짜: ${new Date().toLocaleDateString('ko-KR', {year:'numeric',month:'long',day:'numeric',weekday:'long'})} (${new Date().toLocaleTimeString('ko-KR')})
             1.사용자의 질문에 대해 제공된 도구를 적극 활용하여 정확한 데이터 기반으로 답변하세요.
             2.도구를 사용할 수 있는 경우 반드시 도구를 호출하여 실제 데이터를 조회한 후 답변하세요.
-            3.한국어로 답변하고, 데이터를 표 또는 목록 형식으로 깔끔하게 정리해주세요.
+            3.한국어로 답변하세요. 데이터를 표로 보여줄 때는 반드시 마크다운 테이블 형식(| col1 | col2 | 와 |---|---| 구분선)을 사용하세요. 탭이나 공백 정렬은 금지합니다.
             4.Tool 응답의 formatted_output 필드가 있으면, 반드시 그 텍스트를 그대로 복사하여 응답에 포함합니다. 어떠한 수정, 재배치, 생략도 금지합니다. formatted_output 내용이 최종 답변입니다.
             5. "~가능하니?", "~할 수 있어?" 같은 가능여부 질문 → Tool 호출 없이 "가능합니다" 답변
             6. "~해줘", "~생성해" 같은 실행 요청에만 Tool 호출

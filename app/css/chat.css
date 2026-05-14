@@ -90,6 +90,23 @@
     background: rgba(124,77,255,0.08); padding: 1px 5px; border-radius: 4px;
     font-size: 0.78rem; font-family: 'Fira Code', monospace;
 }
+/* Markdown Table */
+.chat-msg.assistant table {
+    width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.75rem;
+}
+.chat-msg.assistant th {
+    background: rgba(124,77,255,0.12); color: #4A148C; font-weight: 600;
+    padding: 6px 8px; border: 1px solid #D1C4E9; text-align: left; white-space: nowrap;
+}
+.chat-msg.assistant td {
+    padding: 5px 8px; border: 1px solid #E8E0F0; vertical-align: top;
+}
+.chat-msg.assistant tr:nth-child(even) td {
+    background: rgba(124,77,255,0.03);
+}
+.chat-msg.assistant tr:hover td {
+    background: rgba(124,77,255,0.08);
+}
 .chat-msg.system {
     align-self: center; background: #FFF3E0; color: #E65100;
     font-size: 0.73rem; padding: 5px 10px; border-radius: 6px;

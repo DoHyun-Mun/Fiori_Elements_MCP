@@ -2,6 +2,9 @@
 // AI Chat Side Panel Logic
 // ═══════════════════════════════════════════════════════════════
 let chatHistory = [];
+
+// marked.js 동적 로드
+(function() { var s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js"; document.head.appendChild(s); })();
 let chatOpen = false;
 let chatSending = false;
 
@@ -29,12 +32,16 @@ function appendMessage(role, content) {
 }
 
 function renderMarkdown(text) {
+    if (typeof marked !== "undefined" && marked.parse) {
+        marked.setOptions({ gfm: true, breaks: true });
+        return marked.parse(text);
+    }
     return text
-        .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
+        .replace(/```(\w*)\n?([\s\S]*?)```/g, "<pre><code>$2</code></pre>")
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>")
+        .replace(/\n/g, "<br>");
 }
 
 function setTyping(show) {
