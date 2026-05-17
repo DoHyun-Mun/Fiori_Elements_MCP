@@ -42,7 +42,7 @@
     <div class="sidebar-toggle" onclick="toggleSidebar()"><span>◀</span> <span class="toggle-text">메뉴 접기</span></div>
 </nav>
 
-<main class="main" id="main">
+<main class="main chat-open" id="main">
     <!-- Dashboard -->
     <div class="dashboard-view" id="welcomeView">
         <div class="dash-header">
@@ -168,16 +168,16 @@
 
 
 <!-- Chat Toggle Tab -->
-<div class="chat-toggle-tab" id="chatToggleTab" onclick="toggleChat()">
+<div class="chat-toggle-tab hidden" id="chatToggleTab" onclick="toggleChat()">
     <span class="tab-icon">&#x1F916;</span>
     <span class="tab-text">AI</span>
 </div>
 
 <!-- Chat Side Panel -->
-<div class="chat-side-panel" id="chatPanel">
+<div class="chat-side-panel open" id="chatPanel">
     <div class="chat-resize-handle" id="chatResizeHandle"></div>
     <div class="chat-header">
-        <div class="chat-avatar">&#x1F916;</div>
+        <div class="chat-avatar"><img src="/img/logo.png" alt="Store AI"></div>
         <div class="chat-info">
             <div class="chat-name">Store AI</div>
             <div class="chat-status">재고·발주·매출 분석</div>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 점포 운영 (UI5)</title>
+
+    <!-- marked.js (self-hosted) — sap-ui-bootstrap 전에 동기 로드해서 AMD 분기 회피 + race condition 제거 -->
+    <script src="lib/marked.min.js"></script>
+
+    <!-- vis-network — 공급망 네트워크 그래프용 (Dashboard STRIP 5) -->
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+
+    <script
+        id="sap-ui-bootstrap"
+        src="https://sapui5.hana.ondemand.com/1.120.0/resources/sap-ui-core.js"
+        data-sap-ui-theme="sap_horizon"
+        data-sap-ui-resourceroots='{"storepjt.ui5": "./"}'
+        data-sap-ui-oninit="module:sap/ui/core/ComponentSupport"
+        data-sap-ui-compatVersion="edge"
+        data-sap-ui-async="true"
+        data-sap-ui-frameOptions="trusted"
+        data-sap-ui-xx-componentpreload="off">
+    </script>
+</head>
+<body class="sapUiBody" id="content">
+    <div
+        data-sap-ui-component
+        data-name="storepjt.ui5"
+        data-id="container"
+        data-settings='{"id" : "storepjt-ui5"}'
+        style="height: 100vh; width: 100vw;">
+    </div>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <!-- Phase 8-2 v11: 우측 고정 사이드 패널 (Dialog 제거).
+         App.view의 mainContents HBox 안에 배치되며, app>/chatOpen 모델로 visible 토글. -->
+    <VBox
+        id="chatSidePanel"
+        class="chatSidePanel"
+        visible="{= !!${app>/chatOpen} }">
+        <layoutData>
+            <FlexItemData growFactor="0" shrinkFactor="0" baseSize="400px" minWidth="400px"/>
+        </layoutData>
+
+        <!-- 헤더: 보라색 배경 + 아바타 + 타이틀 + 접기 버튼 -->
+        <HBox class="chatPanelHeader" alignItems="Center">
+            <Avatar
+                src="img/logo.png"
+                displaySize="XS"
+                displayShape="Circle"
+                class="chatHeaderAvatar"/>
+            <VBox class="chatHeaderText">
+                <Text text="Store AI" class="chatHeaderTitle"/>
+                <Text text="재고·발주·매출 분석" class="chatHeaderSub"/>
+            </VBox>
+            <ToolbarSpacer/>
+            <Button
+                icon="sap-icon://navigation-right-arrow"
+                type="Transparent"
+                press=".onChatToggle"
+                tooltip="패널 접기"
+                class="chatHeaderClose"/>
+        </HBox>
+
+        <!-- 메시지 영역 (자체 스크롤) -->
+        <ScrollContainer
+            id="chatScroll"
+            height="100%"
+            width="100%"
+            vertical="true"
+            horizontal="false"
+            focusable="true"
+            class="chatScroll">
+            <List
+                id="chatList"
+                items="{path:'chat>/messages', factory:'.messageFactory'}"
+                showSeparators="None"
+                mode="None"
+                class="chatMessageList"
+                noDataText=""/>
+        </ScrollContainer>
+
+        <!-- 입력바: 한글 IME 안전을 위해 value 양방향 바인딩 제거.
+             전송은 submit(Enter, IME composition 종료 후 발사) 또는 종이비행기 버튼.
+             타이핑 인디케이터는 별도 HBox가 아니라 메시지 리스트 안의 임시 placeholder
+             메시지로 처리됨 (App.controller _appendTypingMessage / _removeLastTyping). -->
+        <HBox class="chatInputBar" alignItems="Center" width="100%">
+            <Input
+                id="chatInput"
+                placeholder="질문을 입력하세요..."
+                submit=".onSendMessage"
+                class="chatInputField"
+                width="100%">
+                <layoutData>
+                    <FlexItemData growFactor="1"/>
+                </layoutData>
+            </Input>
+            <Button
+                icon="sap-icon://paper-plane"
+                type="Emphasized"
+                press=".onSendMessage"
+                tooltip="전송"
+                class="chatSendBtn"/>
+        </HBox>
+    </VBox>
+</core:FragmentDefinition>

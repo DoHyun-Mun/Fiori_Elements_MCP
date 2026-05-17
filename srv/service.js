@@ -29,6 +29,27 @@ module.exports = cds.service.impl(async function () {
   });
 
   // ════════════════════════════════════════════════════════════════════
+  // PurchaseOrders - AFTER READ: status_criticality 매핑
+  // - Fiori Elements ObjectStatus (Criticality) 시각화용 가상 필드
+  //   0=None(회색, Draft) / 1=Negative(빨강, Rejected) / 2=Critical(주황, Submitted) / 3=Positive(녹색, Approved/Received)
+  // ════════════════════════════════════════════════════════════════════
+  const PO_STATUS_CRITICALITY = {
+    'Draft': 0,
+    'Submitted': 2,
+    'Approved': 3,
+    'Received': 3,
+    'Rejected': 1
+  };
+  this.after('READ', PurchaseOrders, (data) => {
+    const items = Array.isArray(data) ? data : [data];
+    items.forEach(item => {
+      if (item) {
+        item.status_criticality = PO_STATUS_CRITICALITY[item.status] ?? 0;
+      }
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════════════
   // PurchaseOrders - BEFORE CREATE: 발주 번호 자동 채번 + totalAmount 계산
   // ════════════════════════════════════════════════════════════════════
   this.before('CREATE', PurchaseOrders, async (req) => {
@@ -67,6 +88,92 @@ module.exports = cds.service.impl(async function () {
       const store = await SELECT.one.from('com.inventory.Stores').where({ ID: req.data.store_ID });
       if (store && store.dc_ID) req.data.dc_ID = store.dc_ID;
     }
+  });
+
+  // ════════════════════════════════════════════════════════════════════
+  // PurchaseOrders - 일괄 발주 생성 (단일 트랜잭션, race condition 차단)
+  // ────────────────────────────────────────────────────────────────────
+  // 단건 POST를 N번 반복하면 before('CREATE')의 count(*) 기반 채번에서
+  // race condition으로 동일 poNumber가 중복 생성됨 → unique 제약(@assert.unique)
+  // 위반으로 일부 INSERT가 silently 실패. 본 액션은 단일 트랜잭션 안에서
+  // 시퀀스를 한 번만 채번/증가시키며 INSERT하므로 무결성 보장.
+  // ════════════════════════════════════════════════════════════════════
+  this.on('bulkCreatePurchaseOrders', async (req) => {
+    const items = req.data.items || [];
+    if (!Array.isArray(items) || items.length === 0) {
+      return req.error(400, 'items 배열이 비어있습니다.');
+    }
+
+    const tx = cds.tx(req);
+
+    // 오늘 날짜 기준 시작 시퀀스 1회만 조회
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const dateStr = `${y}${m}${d}`;
+    const cntResult = await tx.run(SELECT.one
+      .from(PurchaseOrders)
+      .columns('count(*) as cnt')
+      .where`poNumber like ${'PO-' + dateStr + '%'}`);
+    let nextSeq = (cntResult?.cnt || 0) + 1;
+
+    const results = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i] || {};
+      try {
+        if (!item.product_ID) {
+          results.push({ index: i, poNumber: '', success: false, error: 'product_ID 누락' });
+          continue;
+        }
+        if (!item.store_ID) {
+          results.push({ index: i, poNumber: '', success: false, error: 'store_ID 누락' });
+          continue;
+        }
+        if (!item.quantity || item.quantity < 1) {
+          results.push({ index: i, poNumber: '', success: false, error: '발주 수량은 1 이상이어야 합니다.' });
+          continue;
+        }
+
+        // 공급업체 자동 매핑 (단건 CREATE 훅과 동일 로직)
+        let supplierId = null;
+        const pm = await tx.run(SELECT.one.from('com.inventory.ProductMaterials').where({ product_ID: item.product_ID }));
+        if (pm) {
+          const mat = await tx.run(SELECT.one.from('com.inventory.Materials').where({ ID: pm.material_ID }));
+          if (mat && mat.supplier_ID) supplierId = mat.supplier_ID;
+        }
+
+        // 물류센터 자동 매핑
+        let dcId = null;
+        const store = await tx.run(SELECT.one.from('com.inventory.Stores').where({ ID: item.store_ID }));
+        if (store && store.dc_ID) dcId = store.dc_ID;
+
+        const poNumber = `PO-${dateStr}-${String(nextSeq).padStart(4, '0')}`;
+        const unitPrice = item.unitPrice || 0;
+        const totalAmount = unitPrice * item.quantity;
+
+        await tx.run(INSERT.into(PurchaseOrders).entries({
+          poNumber: poNumber,
+          product_ID: item.product_ID,
+          store_ID: item.store_ID,
+          supplier_ID: supplierId,
+          dc_ID: dcId,
+          quantity: item.quantity,
+          unitPrice: unitPrice,
+          totalAmount: totalAmount,
+          status: 'Draft'
+        }));
+        results.push({ index: i, poNumber: poNumber, success: true, error: null });
+        nextSeq++;
+      } catch (e) {
+        LOG.warn(`[bulkCreatePurchaseOrders] item[${i}] 실패:`, e.message);
+        results.push({ index: i, poNumber: '', success: false, error: e.message || '알 수 없는 오류' });
+      }
+    }
+
+    const okCnt = results.filter(r => r.success).length;
+    LOG.info(`[bulkCreatePurchaseOrders] total=${items.length}, success=${okCnt}, fail=${items.length - okCnt}`);
+    return results;
   });
 
   // ════════════════════════════════════════════════════════════════════

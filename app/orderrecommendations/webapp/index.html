@@ -358,7 +358,7 @@ function updateSelectedCount() {
     document.getElementById("selectedCount").textContent = checked + "\uAC74 \uC120\uD0DD";
 }
 
-// Batch PO Creation
+// Batch PO Creation — 단일 트랜잭션 batch API (race condition 방지)
 async function batchCreatePO() {
     var checks = document.querySelectorAll(".row-check:checked");
     if (checks.length === 0) { alert("\uBC1C\uC8FC\uD560 \uC0C1\uD488\uC744 \uC120\uD0DD\uD574\uC8FC\uC138\uC694."); return; }
@@ -366,59 +366,103 @@ async function batchCreatePO() {
     var resultDiv = document.getElementById("poResult");
     resultDiv.innerHTML = '<span style="color:#556B82;">\u23F3 ' + checks.length + '\uAC74 \uBC1C\uC8FC \uC0DD\uC131 \uC911...</span>';
 
-    // Get store ID first
-    var storeId = "";
     try {
-        var stRes = await fetch("/inventory/Stores?$top=30&$select=ID,name&$filter=isActive eq true");
-        var stores = (await stRes.json()).value || [];
-        var storeName = recData ? recData.storeName || "" : "";
-        for (var i = 0; i < stores.length; i++) {
-            if (stores[i].name.indexOf(storeName) !== -1) { storeId = stores[i].ID; break; }
-        }
-        if (!storeId && stores.length > 0) storeId = stores[0].ID;
-    } catch(e) {}
-
-    // Get product IDs and costPrice
-    var prRes = await fetch("/inventory/Products?$top=100&$select=ID,name,costPrice&$filter=isActive eq true");
-    var products = (await prRes.json()).value || [];
-    var prodMap = {};
-    var prodPriceMap = {};
-    products.forEach(function(p) { prodMap[p.name] = p.ID; prodPriceMap[p.ID] = p.costPrice || 0; });
-
-    var success = 0, fail = 0, results = [];
-    for (var i = 0; i < checks.length; i++) {
-        var productName = checks[i].getAttribute("data-product");
-        var qty = parseInt(checks[i].getAttribute("data-qty")) || 10;
-        var productId = prodMap[productName] || "";
-
-        // Try partial match if exact not found
-        if (!productId) {
-            for (var key in prodMap) {
-                if (key.indexOf(productName) !== -1 || productName.indexOf(key) !== -1) { productId = prodMap[key]; break; }
-            }
-        }
-
-        if (!productId) { fail++; results.push("\u274C " + productName + ": \uC0C1\uD488 \uBBF8\uBC1C\uACAC"); continue; }
-
+        // 1) 점포 ID 조회
+        var storeId = "";
         try {
-            var tokenRes = await fetch("/inventory/PurchaseOrders", { method: "HEAD", headers: { "x-csrf-token": "fetch" } });
-            var csrfToken = tokenRes.headers.get("x-csrf-token") || "";
-            var res = await fetch("/inventory/PurchaseOrders", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
-                body: JSON.stringify({ product_ID: productId, store_ID: storeId, quantity: qty, unitPrice: prodPriceMap[productId] || 0 })
-            });
-            if (res.ok) {
-                var po = await res.json();
-                success++;
-                results.push("\u2705 " + productName + ": " + (po.poNumber || "OK") + " (" + qty + "\uAC1C)");
-            } else { fail++; results.push("\u274C " + productName + ": \uC0DD\uC131 \uC2E4\uD328"); }
-        } catch(e) { fail++; results.push("\u274C " + productName + ": " + e.message); }
-    }
+            var stRes = await fetch("/inventory/Stores?$top=30&$select=ID,name&$filter=isActive eq true");
+            var stores = (await stRes.json()).value || [];
+            var storeName = recData ? recData.storeName || "" : "";
+            for (var i = 0; i < stores.length; i++) {
+                if (stores[i].name.indexOf(storeName) !== -1) { storeId = stores[i].ID; break; }
+            }
+            if (!storeId && stores.length > 0) storeId = stores[0].ID;
+        } catch(e) {}
 
-    resultDiv.innerHTML = '<div style="padding:0.75rem;background:' + (fail === 0 ? '#E6F4EA' : '#FEF3E0') + ';border-radius:8px;margin-top:0.5rem;">' +
-        '<div style="font-weight:700;margin-bottom:0.4rem;">\uD83D\uDCCB \uBC1C\uC8FC \uC0DD\uC131 \uACB0\uACFC: \uC131\uACF5 ' + success + '\uAC74 / \uC2E4\uD328 ' + fail + '\uAC74</div>' +
-        '<div style="font-size:0.72rem;line-height:1.6;">' + results.join('<br>') + '</div></div>';
+        // 2) 상품 매핑
+        var prRes = await fetch("/inventory/Products?$top=100&$select=ID,name,costPrice&$filter=isActive eq true");
+        var products = (await prRes.json()).value || [];
+        var prodMap = {};
+        var prodPriceMap = {};
+        products.forEach(function(p) { prodMap[p.name] = p.ID; prodPriceMap[p.ID] = p.costPrice || 0; });
+
+        // 3) items 배열 구성 (클라이언트 측 검증 + 표시용 displayName 보관)
+        var items = [];
+        var displayNames = [];
+        var skippedLines = [];
+        for (var j = 0; j < checks.length; j++) {
+            var productName = checks[j].getAttribute("data-product");
+            var qty = parseInt(checks[j].getAttribute("data-qty")) || 10;
+            var productId = prodMap[productName] || "";
+            if (!productId) {
+                for (var key in prodMap) {
+                    if (key.indexOf(productName) !== -1 || productName.indexOf(key) !== -1) { productId = prodMap[key]; break; }
+                }
+            }
+            if (!productId) {
+                skippedLines.push("\u274C " + productName + ": \uC0C1\uD488 \uBBF8\uBC1C\uACAC (\uD074\uB77C\uC774\uC5B8\uD2B8)");
+                continue;
+            }
+            items.push({
+                product_ID: productId,
+                store_ID: storeId,
+                quantity: qty,
+                unitPrice: prodPriceMap[productId] || 0
+            });
+            displayNames.push(productName);
+        }
+
+        if (items.length === 0) {
+            resultDiv.innerHTML = '<div style="padding:0.75rem;background:#FEF3E0;border-radius:8px;margin-top:0.5rem;">' +
+                '<div style="font-weight:700;margin-bottom:0.4rem;">\uB9E4\uCE6D\uB418\uB294 \uC0C1\uD488\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.</div>' +
+                '<div style="font-size:0.72rem;line-height:1.6;">' + skippedLines.join('<br>') + '</div></div>';
+            return;
+        }
+
+        // 4) 단일 batch API 호출
+        var tokenRes = await fetch("/inventory/", { method: "HEAD", headers: { "x-csrf-token": "fetch" } });
+        var csrfToken = tokenRes.headers.get("x-csrf-token") || "";
+        var res = await fetch("/inventory/bulkCreatePurchaseOrders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
+            body: JSON.stringify({ items: items })
+        });
+
+        if (!res.ok) {
+            var errText = "";
+            try { errText = (await res.json()).error?.message || res.statusText; } catch(e) { errText = res.statusText; }
+            resultDiv.innerHTML = '<div style="padding:0.75rem;background:#FCE8E6;border-radius:8px;margin-top:0.5rem;color:#D93025;">' +
+                '\u274C HTTP ' + res.status + ': ' + errText + '</div>';
+            return;
+        }
+
+        var data = await res.json();
+        // OData V4 array action 응답: { value: [...] } 또는 직접 배열
+        var results = Array.isArray(data) ? data : (data.value || data.results || []);
+        var success = results.filter(function(r) { return r.success; }).length;
+        var fail = results.length - success;
+
+        var lines = results.map(function(r) {
+            var name = displayNames[r.index] || ('item[' + r.index + ']');
+            var qty = items[r.index] ? items[r.index].quantity : '?';
+            return r.success
+                ? '\u2705 ' + name + ': ' + r.poNumber + ' (' + qty + '\uAC1C)'
+                : '\u274C ' + name + ': ' + (r.error || '\uC0DD\uC131 \uC2E4\uD328');
+        });
+        var allLines = skippedLines.concat(lines);
+        var totalFail = fail + skippedLines.length;
+        var bgColor = (totalFail === 0) ? '#E6F4EA' : '#FEF3E0';
+
+        resultDiv.innerHTML = '<div style="padding:0.75rem;background:' + bgColor + ';border-radius:8px;margin-top:0.5rem;">' +
+            '<div style="font-weight:700;margin-bottom:0.4rem;">\uD83D\uDCCB \uBC1C\uC8FC \uC0DD\uC131 \uACB0\uACFC: \uC131\uACF5 ' + success + '\uAC74 / \uC2E4\uD328 ' + totalFail + '\uAC74</div>' +
+            '<div style="font-size:0.72rem;line-height:1.6;">' + allLines.join('<br>') + '</div></div>';
+
+        if (totalFail > 0) {
+            alert('\uC77C\uAD04 \uBC1C\uC8FC \uC0DD\uC131 \uC911 ' + totalFail + '\uAC74\uC774 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uACB0\uACFC \uBAA9\uB85D\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694.');
+        }
+    } catch (e) {
+        resultDiv.innerHTML = '<div style="padding:0.75rem;background:#FCE8E6;border-radius:8px;margin-top:0.5rem;color:#D93025;">\u274C \uB124\uD2B8\uC6CC\uD06C \uC624\uB958: ' + (e.message || e) + '</div>';
+    }
 }
 
 // Toggle analysis cards expand/collapse

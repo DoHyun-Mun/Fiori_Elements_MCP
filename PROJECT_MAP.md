@@ -9,8 +9,9 @@
 
 ```
 store-pjt/
-├── app/                          # 프론트엔드 (Fiori Elements + Custom HTML)
-│   ├── index.html                # 메인 SPA (AI 대시보드 + 사이드 메뉴 + 채팅)
+├── app/                          # 프론트엔드 (UI5 Shell + Fiori Elements + Custom HTML)
+│   ├── ui5/                      # ⭐ UI5 통합 Shell (Dashboard + AI Chat + AI 결과 5앱)
+│   ├── index.html                # (legacy) Vanilla JS SPA — UI5 Shell으로 대체됨
 │   ├── services.cds              # 앱별 annotation 참조 등록
 │   ├── css/
 │   │   ├── main.css              # 대시보드/레이아웃 스타일
@@ -44,11 +45,11 @@ store-pjt/
 │   ├── storereceipts/            # 점포입고
 │   │
 │   ├── # ═══ AI 분석 상세 페이지 (Custom HTML, localStorage 연동) ═══
-│   ├── demandforecasts/webapp/index.html    # 수요 예측 (차트+Action가이드+발주생성)
-│   ├── orderrecommendations/webapp/index.html # 발주 추천 (AI판단+사유분석+일괄발주)
-│   ├── churnpredictions/webapp/index.html   # 이탈 예측 (위험등급+리텐션전략+고객상세)
-│   ├── salesanomalies/webapp/index.html     # 이상 탐지 (대응가이드+항목테이블+권고)
-│   └── customersegments/webapp/index.html   # 고객 세분화 (RFM카드+마케팅전략+액션플랜)
+│   ├── demandforecasts/webapp/index.html    # (legacy) 수요 예측 — UI5 view로 대체됨
+│   ├── orderrecommendations/webapp/index.html # (legacy) 발주 추천 — UI5 view로 대체됨
+│   ├── churnpredictions/webapp/index.html   # (legacy) 이탈 예측 — UI5 view로 대체됨
+│   ├── salesanomalies/webapp/index.html     # (legacy) 이상 탐지 — UI5 view로 대체됨
+│   └── customersegments/webapp/index.html   # (legacy) 고객 세분화 — UI5 view로 대체됨
 │
 ├── srv/                          # 백엔드 서비스 (CAP Node.js)
 │   ├── service.cds               # InventoryService 엔티티/액션/함수 정의
@@ -232,4 +233,56 @@ processToolData(toolData, msgDiv)
 
 ---
 
-## 📅 최종 업데이트: 2026-05-08
+## 🎨 UI5 Shell (`app/ui5/`)
+
+기존 Vanilla JS SPA를 **SAP UI5 Framework** 기반으로 재구성한 통합 Shell.
+백엔드(CAP OData)는 그대로 공유. Fiori Elements 19개 앱은 변경 없이 iframe 임베딩.
+
+```
+app/ui5/
+├── README.md                  # 구조/로컬 개발/아키텍처/함정 가이드
+├── package.json               # UI5 dev 서버 의존성 (start/build)
+├── ui5.yaml                   # fiori-tools-proxy (/inventory, /chat → :4004)
+└── webapp/
+    ├── index.html / Component.js / manifest.json
+    ├── view/                  # 9개 XML view
+    │   ├── App.view.xml              # ToolPage Shell (Header + SideNav + NavContainer)
+    │   ├── Dashboard.view.xml        # KPI 4 + AI Insights + VizFrame + Health + Order/Anomaly
+    │   ├── Embedded.view.xml         # Fiori Elements iframe wrapper
+    │   ├── Chat.fragment.xml         # AI Chat Dialog
+    │   └── DemandForecasts / OrderRecommendations / ChurnPredictions / CustomerSegments / SalesAnomalies
+    ├── controller/            # 9개 controller
+    └── model/chatProcessor.js # AI Chat tool_calls 5종 파싱 → localStorage + msgType
+```
+
+### 라우팅 구성
+| Route | Pattern | 역할 |
+|---|---|---|
+| `dashboard` | `` | 메인 대시보드 |
+| `embedded` | `embedded/{appPath}` | Fiori Elements 19앱 iframe |
+| `demand-forecasts` / `order-recommendations` / `churn-predictions` / `customer-segments` / `sales-anomalies` | (각 path) | AI 결과 5뷰 |
+
+### 데이터 흐름 (AI Chat → 5뷰)
+```
+POST /chat/sendMessage → { toolData }
+  → chatProcessor: 5종 도구 파싱 → localStorage 저장 + msgType 부여
+    → App.controller.navigateAndPostMessage(url, msgType)
+      → UI5 view 라우팅 + window.postMessage({type: msgType})
+        → 해당 view의 message listener → KPI/차트/Table 재렌더
+```
+
+### 로컬 개발
+- **CAP 정적 서빙(권장)**: `cds watch` → `http://localhost:4004/ui5/index.html`
+- **UI5 dev 서버(hot reload)**: `cd app/ui5 && npm start` → `http://localhost:8080`
+
+### 운영 배포
+별도 빌드/sync 불필요. 프로젝트 전체와 함께 배포:
+- approuter `xs-app.json` catch-all → cap-backend → CAP 정적 서빙으로 `/ui5/*` 자동 처리
+- `./scripts/deploy-kyma.sh --app` 한 번이면 끝
+- 인증: XSUAA(approuter)에서 자동 처리
+
+자세한 내용은 [`app/ui5/README.md`](./app/ui5/README.md) 참조.
+
+---
+
+## 📅 최종 업데이트: 2026-05-17

@@ -1,0 +1,44 @@
+specVersion: "3.0"
+metadata:
+  name: inventory-management-ui5
+type: application
+framework:
+  name: SAPUI5
+  version: "1.120.0"
+  libraries:
+    - name: sap.m
+    - name: sap.f
+    - name: sap.tnt
+    - name: sap.ui.core
+    - name: sap.ui.layout
+    - name: sap.ui.unified
+    - name: sap.ui.table
+    - name: sap.viz
+    - name: themelib_sap_horizon
+server:
+  customMiddleware:
+    - name: fiori-tools-proxy
+      afterMiddleware: compression
+      configuration:
+        ignoreCertError: false
+        backend:
+          - path: /inventory
+            url: http://localhost:4004
+          - path: /chat
+            url: http://localhost:4004
+          - path: /odata
+            url: http://localhost:4004
+          - path: /img
+            url: http://localhost:4004
+        ui5:
+          path:
+            - /resources
+            - /test-resources
+          url: https://ui5.sap.com
+          version: "1.120.0"
+    - name: fiori-tools-appreload
+      afterMiddleware: compression
+      configuration:
+        port: 35729
+        path: webapp
+        delay: 300

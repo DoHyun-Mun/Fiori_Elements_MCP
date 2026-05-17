@@ -1,0 +1,33 @@
+# ══════════════════════════════════════════════════════════════
+# CAP API 직접 접근용 APIRule (Approuter 우회)
+# OAuth2ClientCredentials 방식 - JWT 토큰 검증
+# 다른 Subaccount에서 Destination으로 연결하기 위한 엔드포인트
+# ══════════════════════════════════════════════════════════════
+apiVersion: gateway.kyma-project.io/v2alpha1
+kind: APIRule
+metadata:
+  name: store-pjt-api
+  namespace: store-pjt
+  labels:
+    app: store-pjt
+    purpose: external-api
+spec:
+  gateway: kyma-system/kyma-gateway
+  hosts:
+    - "store-pjt-api.c56380c.kyma.ondemand.com"
+  service:
+    name: store-pjt
+    port: 4004
+  rules:
+    - path: /inventory/{**}
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+      jwt:
+        authentications:
+          - issuer: "https://btpkymaenv-49u1ke1h.authentication.ap12.hana.ondemand.com/oauth/token"
+            jwksUri: "https://btpkymaenv-49u1ke1h.authentication.ap12.hana.ondemand.com/token_keys"
+    - path: /inventory
+      methods: ["GET", "HEAD", "OPTIONS"]
+      jwt:
+        authentications:
+          - issuer: "https://btpkymaenv-49u1ke1h.authentication.ap12.hana.ondemand.com/oauth/token"
+            jwksUri: "https://btpkymaenv-49u1ke1h.authentication.ap12.hana.ondemand.com/token_keys"

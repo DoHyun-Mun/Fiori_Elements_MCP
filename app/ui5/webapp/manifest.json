@@ -1,0 +1,112 @@
+{
+  "_version": "1.59.0",
+  "sap.app": {
+    "id": "storepjt.ui5",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "dataSources": {
+      "inventory": {
+        "uri": "/inventory/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "rootView": {
+      "viewName": "storepjt.ui5.view.App",
+      "type": "XML",
+      "id": "app",
+      "async": true
+    },
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m": {},
+        "sap.f": {},
+        "sap.tnt": {},
+        "sap.ui.core": {},
+        "sap.ui.layout": {},
+        "sap.ui.unified": {},
+        "sap.ui.table": {},
+        "sap.viz": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "storepjt.ui5.i18n.i18n"
+        }
+      },
+      "": {
+        "dataSource": "inventory",
+        "settings": {
+          "synchronizationMode": "None",
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
+      },
+      "app": {
+        "type": "sap.ui.model.json.JSONModel"
+      }
+    },
+    "resources": {
+      "css": [
+        { "uri": "css/style.css" }
+      ]
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "viewPath": "storepjt.ui5.view",
+        "controlId": "pageContainer",
+        "controlAggregation": "pages",
+        "async": true
+      },
+      "routes": [
+        {
+          "pattern": "",
+          "name": "dashboard",
+          "target": "dashboard"
+        },
+        {
+          "pattern": "embedded/{appPath}",
+          "name": "embedded",
+          "target": "embedded"
+        }
+      ],
+      "targets": {
+        "dashboard": {
+          "viewName": "Dashboard",
+          "viewLevel": 1
+        },
+        "embedded": {
+          "viewName": "Embedded",
+          "viewLevel": 2
+        }
+      }
+    }
+  }
+}

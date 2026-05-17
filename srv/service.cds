@@ -61,9 +61,14 @@ service InventoryService @(path: '/inventory') {
 
   /**
    * PurchaseOrders - 발주 마스터
+   * - status_criticality: status에 따라 ObjectStatus criticality 매핑
+   *   (after READ에서 채워짐, 0=None, 1=Error, 2=Warning, 3=Success)
    */
   @odata.draft.enabled
-  entity PurchaseOrders as projection on db.PurchaseOrders
+  entity PurchaseOrders as projection on db.PurchaseOrders {
+    *,
+    null as status_criticality : Integer
+  }
   actions {
     /** 승인 요청: Draft → Submitted */
     action submitOrder() returns PurchaseOrders;
@@ -74,6 +79,26 @@ service InventoryService @(path: '/inventory') {
     /** 입고 처리: Approved → Received (재고 반영) */
     action receiveOrder(warehouse : String(50)) returns PurchaseOrders;
   };
+
+  /**
+   * 일괄 발주 생성 (단일 트랜잭션)
+   * - 클라이언트가 N건 단건 POST하면 before('CREATE')의 count-기반 채번에서
+   *   race condition 발생 → unique 제약(poNumber) 충돌로 일부 INSERT 실패
+   * - 본 액션은 단일 트랜잭션에서 시퀀스를 채번/증가시키며 일괄 INSERT
+   */
+  type BulkPOItem {
+    product_ID : UUID;
+    store_ID   : UUID;
+    quantity   : Integer;
+    unitPrice  : Decimal(12,2);
+  };
+  type BulkPOResult {
+    index    : Integer;
+    poNumber : String(20);
+    success  : Boolean;
+    error    : String;
+  };
+  action bulkCreatePurchaseOrders(items : array of BulkPOItem) returns array of BulkPOResult;
 
   /**
    * Customers - 고객 마스터

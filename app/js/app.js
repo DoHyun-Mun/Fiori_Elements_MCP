@@ -111,7 +111,7 @@ function clearAILocalStorage() {
     localStorage.removeItem('salesAnomalyData');
 }
 
-document.addEventListener("DOMContentLoaded", () => { clearAILocalStorage(); loadMenuData(); loadDashboardData(); toggleChat(); });
+document.addEventListener("DOMContentLoaded", () => { clearAILocalStorage(); loadMenuData(); loadDashboardData(); });
 
 // iframe에서 오는 navigateTo 메시지 수신
 window.addEventListener("message", function(e) {

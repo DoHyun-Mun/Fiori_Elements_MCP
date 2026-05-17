@@ -859,20 +859,49 @@ annotate service.PurchaseOrders with @(
     Description    : { $Type: 'UI.DataField', Value: product.name }
   },
 
+  // 첫 진입 시 정렬: 발주 번호(PO-YYYYMMDD-XXXX) 내림차순 → 최신 발주 우선
+  UI.PresentationVariant : {
+    SortOrder      : [{ Property : poNumber, Descending : true }],
+    Visualizations : ['@UI.LineItem']
+  },
+
   UI.SelectionFields : [ poNumber, product_ID, dc_ID, store_ID, supplier_ID, status, requestedBy ],
 
+  // LineItem
+  // - poNumber: plain text + Importance:High (좁아도 끝까지 표시, 줄바꿈 방지)
+  // - status: Criticality로 ObjectStatus 색상 시각화 + Importance:High (항상 표시)
+  // - 부수 정보(물류센터/공급업체/단가/요청자/입고예정일): Importance:Low → 좁아질 때 자동 hide/popin
   UI.LineItem : [
-    { $Type: 'UI.DataField', Value: poNumber,        Label: '발주 번호', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: product.name,    Label: '상품명', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: dc.name,         Label: '물류센터(DC)', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: store.name,      Label: '점포', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: supplier.name,   Label: '공급업체', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: quantity,         Label: '수량', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: unitPrice,        Label: '단가', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: totalAmount,      Label: '합계 금액', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: status,           Label: '상태', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: requestedBy,      Label: '요청자', ![@HTML5.CssDefaults]: { width: 'auto' } },
-    { $Type: 'UI.DataField', Value: expectedDate,     Label: '입고 예정일', ![@HTML5.CssDefaults]: { width: 'auto' } }
+    { $Type: 'UI.DataField', Value: poNumber,        Label: '발주 번호',
+      ![@UI.Importance]: #High,
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: product.name,    Label: '상품명',
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: dc.name,         Label: '물류센터(DC)',
+      ![@UI.Importance]: #Low,
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: store.name,      Label: '점포',
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: supplier.name,   Label: '공급업체',
+      ![@UI.Importance]: #Low,
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: quantity,         Label: '수량',
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: unitPrice,        Label: '단가',
+      ![@UI.Importance]: #Low,
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: totalAmount,      Label: '합계 금액',
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: status,           Label: '상태',
+      ![@UI.Importance]: #High,
+      Criticality: status_criticality,
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: requestedBy,      Label: '요청자',
+      ![@UI.Importance]: #Low,
+      ![@HTML5.CssDefaults]: { width: 'auto' } },
+    { $Type: 'UI.DataField', Value: expectedDate,     Label: '입고 예정일',
+      ![@UI.Importance]: #Low,
+      ![@HTML5.CssDefaults]: { width: 'auto' } }
   ],
 
   UI.Facets : [

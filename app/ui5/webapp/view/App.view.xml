@@ -1,0 +1,129 @@
+<mvc:View
+    controllerName="storepjt.ui5.controller.App"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:tnt="sap.tnt"
+    xmlns:core="sap.ui.core"
+    displayBlock="true"
+    height="100%">
+
+    <tnt:ToolPage id="toolPage">
+        <tnt:header>
+            <tnt:ToolHeader>
+                <Button
+                    icon="sap-icon://menu2"
+                    type="Transparent"
+                    press=".onSideNavToggle"
+                    tooltip="메뉴 토글">
+                    <layoutData>
+                        <OverflowToolbarLayoutData priority="NeverOverflow"/>
+                    </layoutData>
+                </Button>
+                <!-- 좌측 로고 박스 (이미지 + 타이틀 + 부제) — 클릭 시 Dashboard 복귀
+                     클릭 핸들러는 controller onAfterRendering에서 DOM에 부착 -->
+                <HBox
+                    id="topLogoBox"
+                    alignItems="Center"
+                    class="topLogoBox">
+                    <Image src="img/logo.png" width="30px" height="30px" class="topLogoImg"/>
+                    <VBox class="topLogoText">
+                        <Text text="AI 점포 운영" class="topLogoMain"/>
+                        <Text text="Intelligent Store Operations" class="topLogoSub"/>
+                    </VBox>
+                </HBox>
+                
+                <!-- 상단 대분류 메뉴 — SAP 표준 IconTabHeader (sap.m)
+                     selectedKey 양방향 바인딩으로 active 자동 처리 + 테마 색상 자동 적용
+                     클릭 시 onTopTabSelect → _selectTop으로 사이드바 children 채움 -->
+                <IconTabHeader
+                    id="topTabHeader"
+                    items="{app>/menu/roots}"
+                    selectedKey="{app>/menu/activeTopId}"
+                    select=".onTopTabSelect"
+                    mode="Inline"
+                    showOverflowSelectList="true"
+                    tabsOverflowMode="End"
+                    class="topTabHeader">
+                    <items>
+                        <IconTabFilter text="{app>title}" key="{app>ID}"/>
+                    </items>
+                </IconTabHeader>
+                <!-- 고정폭 spacer — flex grow ToolbarSpacer가 IconTabHeader 가용 공간을
+                     흡수하던 문제 해결 (P8-2 v23). IconTabHeader는 .topTabHeader 클래스로
+                     flex:1 1 0 받아 남은 공간 풀로 차지. -->
+                <ToolbarSpacer width="1rem"/>
+                <Button
+                    icon="sap-icon://home"
+                    type="Transparent"
+                    press=".onHomePress"
+                    tooltip="대시보드"/>
+                <Button
+                    icon="sap-icon://da"
+                    type="Transparent"
+                    press=".onChatToggle"
+                    tooltip="AI Chat">
+                    <layoutData>
+                        <OverflowToolbarLayoutData priority="NeverOverflow"/>
+                    </layoutData>
+                </Button>
+                <Button
+                    icon="sap-icon://account"
+                    type="Transparent"
+                    tooltip="사용자"/>
+            </tnt:ToolHeader>
+        </tnt:header>
+
+        <tnt:sideContent>
+            <tnt:SideNavigation
+                id="sideNav"
+                expanded="true"
+                itemSelect=".onSideItemSelect">
+                <tnt:NavigationList
+                    id="sideNavList"
+                    items="{app>/menu/sideItems}">
+                    <tnt:NavigationListItem
+                        text="{app>title}"
+                        icon="{app>icon}"
+                        key="{app>ID}"
+                        expanded="true"
+                        items="{app>children}">
+                        <tnt:NavigationListItem
+                            text="{app>title}"
+                            key="{app>ID}"/>
+                    </tnt:NavigationListItem>
+                </tnt:NavigationList>
+                <!-- 사이드바 하단 즐겨찾기(Quicklinks) — HTML dashboard와 동일한 S/4HANA, Help, Support
+                     fixedItem 영역은 SideNavigation 하단에 고정되어 표시됨.
+                     링크는 사용자 요청에 따라 비워둠 (placeholder press 핸들러로 처리). -->
+                <tnt:fixedItem>
+                    <tnt:NavigationList id="sideNavQuicklinks" class="sideNavQuicklinks">
+                        <tnt:NavigationListItem
+                            text="S/4HANA"
+                            icon="sap-icon://action"
+                            select=".onQuicklinkS4"/>
+                        <tnt:NavigationListItem
+                            text="Help"
+                            icon="sap-icon://sys-help"
+                            select=".onQuicklinkHelp"/>
+                        <tnt:NavigationListItem
+                            text="Support"
+                            icon="sap-icon://headset"
+                            select=".onQuicklinkSupport"/>
+                    </tnt:NavigationList>
+                </tnt:fixedItem>
+            </tnt:SideNavigation>
+        </tnt:sideContent>
+
+        <tnt:mainContents>
+            <!-- main(좌) + chat side panel(우) 2분할 — Phase 8-2 v11 -->
+            <HBox fitContainer="true" width="100%" class="mainSplitWrap">
+                <NavContainer id="pageContainer" defaultTransitionName="show">
+                    <layoutData>
+                        <FlexItemData growFactor="1" minWidth="0"/>
+                    </layoutData>
+                </NavContainer>
+                <core:Fragment fragmentName="storepjt.ui5.view.Chat" type="XML"/>
+            </HBox>
+        </tnt:mainContents>
+    </tnt:ToolPage>
+</mvc:View>

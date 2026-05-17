@@ -1,0 +1,1346 @@
+/* store-pjt-ui5 글로벌 스타일 — Phase 1 */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+#content,
+.sapMApp,
+.sapTntToolPage {
+  height: 100% !important;
+}
+
+/* ===== Shell ===== */
+.topMenuBar .sapMBtn {
+  margin: 0 0.15rem;
+}
+
+/* ===== Dashboard ===== */
+.dashboardContent {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dashSubtitle {
+  color: #6a7a8c;
+  font-size: 0.85rem;
+}
+
+.kpiCard {
+  background: #fff;
+}
+
+.kpiContent {
+  padding: 0.5rem 1rem;
+}
+
+.kpiValue {
+  font-size: 1.6rem !important;
+  font-weight: 700 !important;
+  color: #1d2d3e;
+}
+
+.insightCard {
+  background: #fff;
+}
+
+.forecastSummary {
+  font-weight: 600;
+  color: #1d2d3e;
+  display: block;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Store Health */
+.storeHealthCard {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.storeHealthCard:hover {
+  transform: translateY(-2px);
+}
+.storeStatusIcon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.storeName {
+  font-size: 0.78rem;
+  color: #1d2d3e;
+  font-weight: 600;
+}
+.storeSubtle {
+  font-size: 0.7rem;
+  color: #6a7a8c;
+}
+
+/* Order Rec / Anomaly Lists */
+.recTitle, .anomTitle {
+  font-weight: 600;
+  color: #1d2d3e;
+}
+.recSub, .anomSub {
+  font-size: 0.78rem;
+  color: #6a7a8c;
+}
+.anomIcon {
+  font-size: 1.2rem;
+}
+
+/* Embedded iframe */
+.embeddedPage .sapMPageEnableScrolling {
+  overflow: hidden;
+}
+
+/* ============================================================ */
+/* ===== Phase 8-2 v11: Chat 사이드 패널 (Dialog 제거) ======== */
+/* ============================================================ */
+
+/* P8-2 v16: DOM 분석 결과 ToolPage wrapper가 2단계(.sapTntToolPageMainContent +
+   .sapTntToolPageMainContentWrapper) → 모두 height 100% 강제. mainSplitWrap도
+   inline style은 width만 있어 height 누락 → 명시 강제
+
+   P8-2 v23: aside와 수직 정렬 일치 — .sapTntToolPageAside는 SAP 표준 margin-top:8px
+   을 받는데 .sapTntToolPageMain은 0이라 8px 비대칭(메인이 8px 더 큼) 발생.
+   결과: 메인 영역이 부모(ContentWrapper)보다 8px 더 차지 → 입력바 하단 잘림 +
+   콘텐츠가 시각적으로 우/하단으로 치우쳐 보임.
+   해결: main에도 동일 margin-top:8px + height calc(100% - 8px) 보정. */
+.sapTntToolPage .sapTntToolPageMain {
+  padding: 0 !important;
+  margin-top: 8px !important;
+  height: calc(100% - 8px) !important;
+  max-height: calc(100% - 8px) !important;
+  overflow: hidden !important;
+}
+.sapTntToolPageMainContent,
+.sapTntToolPageMainContentWrapper {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* main(좌) + chat panel(우) 2분할 wrapper — height 100% + align-items stretch */
+.mainSplitWrap {
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100%;
+  align-items: stretch !important;
+  overflow: hidden !important;
+}
+
+/* HBox 자식 wrapper(.sapMFlexItem) 모두 height 100% + align-self stretch
+   → 자식 패널이 부모 height를 정확히 받음 (v15 핵심) */
+.mainSplitWrap > .sapMFlexItem {
+  height: 100% !important;
+  max-height: 100% !important;
+  align-self: stretch !important;
+}
+
+/* 우측 고정 사이드 패널 — width 400px, full height (콘텐츠로 부풀지 않음) */
+.chatSidePanel {
+  width: 400px !important;
+  min-width: 400px !important;
+  max-width: 400px !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  background: #ffffff;
+  border-left: 1px solid #e5e8ed;
+  box-shadow: -2px 0 8px rgba(29,45,62,0.04);
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 자식 3개 flex 적층 강제 — 헤더(auto) + 스크롤(grow) + 입력바(auto)
+   P8-2 v17: UI5가 ScrollContainer를 .sapMFlexBoxScroll wrapper로 감싸므로
+   직계 자식 selector는 .chatScroll이 아니라 .sapMFlexBoxScroll로 매칭해야 함 */
+.chatSidePanel > .chatPanelHeader { flex: 0 0 auto !important; }
+.chatSidePanel > .chatInputBar    { flex: 0 0 auto !important; }
+
+/* ⭐ v17/v22 핵심: ScrollContainer wrapper(.sapMFlexBoxScroll)에 inline flex: 0 1 auto 덮어쓰기
+   DevTools 측정값: flex-grow:0 + height:672.812px(콘텐츠 크기) → 입력바를 밀어냄
+   해결: flex 1 1 0%로 강제 → 부모의 남은 공간만 차지 + height auto로 콘텐츠 크기 무시.
+   v22 보강: 직계 자식이 아닌 케이스(:scope > * > .sapMFlexBoxScroll 등)도 cover 위해
+   selector를 chatSidePanel descendant로 확장 + display: block으로 자라는 inline-block
+   문제 회피용 display: flex 강제 */
+.chatSidePanel .sapMFlexBoxScroll,
+.chatSidePanel > .sapMFlexBoxScroll {
+  flex: 1 1 0% !important;
+  flex-grow: 1 !important;
+  flex-shrink: 1 !important;
+  flex-basis: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+.chatSidePanel .sapMFlexBoxScroll > .chatScroll,
+.chatSidePanel .sapMFlexBoxScroll > .sapMScrollCont {
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.chatSidePanel .sapMFlexBoxScroll > .chatScroll > .sapMScrollContScroll,
+.chatSidePanel .sapMScrollCont > .sapMScrollContScroll {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+}
+
+/* 헤더 — 보라 그라데이션 */
+.chatPanelHeader {
+  padding: 0.75rem 0.85rem;
+  background: linear-gradient(135deg, #7B4FE0, #5E39C0);
+  color: #fff;
+  flex: 0 0 auto;
+  gap: 0.6rem;
+}
+/* P8-2 v23: 보라 헤더 위 로고 가시성 — 흰 배경 배지로 또렷이 보이게.
+   src=img/logo.png 자체가 보라 톤이라 그라데이션 배경에 묻혔던 문제 해결. */
+.chatHeaderAvatar {
+  flex-shrink: 0;
+}
+.chatHeaderAvatar.sapFAvatar,
+.chatHeaderAvatar .sapFAvatar {
+  background-color: #ffffff !important;
+  border: 2px solid rgba(255,255,255,0.7) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.chatHeaderAvatar .sapFAvatarImageHolder {
+  background-color: #ffffff !important;
+  background-size: 75% !important;
+  background-position: center !important;
+}
+.chatHeaderText {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.2;
+}
+.chatHeaderTitle.sapMText {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+.chatHeaderSub.sapMText {
+  font-size: 0.7rem !important;
+  color: rgba(255,255,255,0.75) !important;
+}
+.chatHeaderClose .sapMBtnIcon,
+.chatPanelHeader .sapUiIcon {
+  color: #fff !important;
+}
+.chatHeaderClose:hover .sapMBtnInner {
+  background: rgba(255,255,255,0.15) !important;
+}
+
+/* 메시지 영역 (자체 스크롤) */
+.chatScroll {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  background: #f5f6fa;
+}
+.chatScroll > .sapMScrollContScroll {
+  height: 100% !important;
+  overflow-y: auto !important;
+}
+.chatMessageList {
+  background: transparent !important;
+  border: none !important;
+}
+.chatMessageList .sapMListUl {
+  background: transparent !important;
+}
+.chatMessageItem,
+.chatMessageItem .sapMLIB,
+.chatMessageItem .sapMCustomLI-Content {
+  background: transparent !important;
+  border: none !important;
+  padding: 0.2rem 0.6rem !important;
+  min-height: auto !important;
+}
+/* user 메시지 우측 정렬 — UI5 CustomListItem의 모든 wrapper 단계에 flex 강제 */
+.chatMessageItem-user .sapMLIB,
+.chatMessageItem-user .sapMCustomLI-Content {
+  display: flex !important;
+  justify-content: flex-end !important;
+  width: 100% !important;
+}
+.chatMessageItem-assistant .sapMLIB,
+.chatMessageItem-assistant .sapMCustomLI-Content,
+.chatMessageItem-system .sapMLIB,
+.chatMessageItem-system .sapMCustomLI-Content {
+  display: flex !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+}
+
+/* 메시지 컬럼 (시간 위 + 버블 아래) */
+.chatMsgCol {
+  display: flex !important;
+  flex-direction: column !important;
+  max-width: 100%;
+  min-width: 0;
+}
+.chatMsgCol-user { align-items: flex-end !important; }
+.chatMsgCol-assistant,
+.chatMsgCol-system { align-items: flex-start !important; }
+
+.chatTime.sapMText {
+  font-size: 0.62rem !important;
+  color: #8396a8 !important;
+  margin-top: 0.2rem;
+  padding: 0 0.3rem;
+}
+.chatMsgCol-user .chatTime.sapMText { text-align: right; align-self: flex-end; }
+
+/* 버블 색상 */
+.chatBubble {
+  padding: 0.55rem 0.8rem;
+  border-radius: 14px;
+  line-height: 1.5;
+  font-size: 0.8rem;
+  word-wrap: break-word;
+}
+.chatBubble-user {
+  background: #E5DEFF;
+  color: #1D2D3E;
+  border-bottom-right-radius: 4px;
+}
+.chatBubble-assistant {
+  background: #ffffff;
+  color: #1D2D3E;
+  border: 1px solid #e5e8ed;
+  border-bottom-left-radius: 4px;
+}
+.chatBubble-system {
+  background: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffe69c;
+  font-size: 0.76rem;
+  border-radius: 8px;
+}
+.chatBubble pre {
+  background: #1e2a3a; color: #eef2f7;
+  padding: 0.5rem; border-radius: 6px;
+  overflow-x: auto; font-size: 0.75rem;
+  margin: 0.3rem 0;
+}
+.chatBubble code {
+  background: rgba(0,0,0,0.06);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+}
+.chatBubble-user code { background: rgba(255,255,255,0.3); }
+.chatBubble ul, .chatBubble ol { margin: 0.3rem 0 0.3rem 1.2rem; padding: 0; }
+.chatBubble p { margin: 0.2rem 0; }
+
+/* 표 스크롤 */
+.chatTableScroll { overflow-x: auto; margin: 0.3rem 0; }
+.chatTableScroll table {
+  border-collapse: collapse; width: 100%; font-size: 0.72rem;
+}
+.chatTableScroll th, .chatTableScroll td {
+  border: 1px solid #e0e6ed; padding: 0.2rem 0.45rem; text-align: left;
+}
+.chatTableScroll th { background: #f0f4f8; }
+
+/* 상세 보기 버튼 (toolData 결과) */
+.chatDetailBtn {
+  display: inline-block;
+  margin: 0.4rem 0.3rem 0 0;
+  padding: 0.5rem 0.85rem;
+  color: #fff !important;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 4px rgba(29,45,62,0.12);
+}
+.chatDetailBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(29,45,62,0.18);
+}
+
+/* 타이핑 인디케이터 — P8-2 v14: 메시지 리스트 안 임시 placeholder 메시지의 점멸 3 dot.
+   .chatBubble-assistant 안에 들어가므로 별도 위치/배경 지정 불필요 */
+.chatTypingDots {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px 0;
+  align-items: center;
+}
+.chatTypingDots span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #8396a8;
+  border-radius: 50%;
+  animation: chatDotPulse 1.2s infinite ease-in-out;
+}
+.chatTypingDots span:nth-child(2) { animation-delay: 0.2s; }
+.chatTypingDots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes chatDotPulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
+  40%           { opacity: 1;   transform: scale(1); }
+}
+
+/* 입력바 — 항상 하단 고정 */
+.chatInputBar {
+  flex: 0 0 auto !important;
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid #e5e8ed;
+  background: #ffffff;
+  gap: 0.5rem;
+  align-items: center !important;
+}
+.chatInputField,
+.chatInputField .sapMInputBaseInner {
+  width: 100% !important;
+}
+.chatInputField {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+/* P8-2 v21: Input 깔끔한 알약 — 모든 default border/outline/shadow 제거.
+   ContentWrapper에 단일 border만 + focus는 보라 테두리만 (글로우 제거).
+   v20에선 box-shadow 글로우가 "선 2개 겹침"으로 보였고 inner의 default
+   focus ring도 살아있었음 → outline: none + ::before/::after disable */
+.chatInputField,
+.chatInputField .sapMInputBase {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.chatInputField .sapMInputBaseContentWrapper {
+  border-radius: 20px !important;
+  background: #f5f6fa !important;
+  background-color: #f5f6fa !important;
+  background-image: none !important;
+  border: 1px solid #e5e8ed !important;
+  height: 38px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+/* UI5 underline pseudo-element 제거 (default 하단 라인) */
+.chatInputField .sapMInputBaseContentWrapper::before,
+.chatInputField .sapMInputBaseContentWrapper::after {
+  display: none !important;
+  content: none !important;
+}
+/* focus 시 — 보라 테두리만 (글로우 제거) */
+.chatInputField:focus-within .sapMInputBaseContentWrapper,
+.chatInputField.sapMFocus .sapMInputBaseContentWrapper {
+  border-color: #7B4FE0 !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.chatInputField .sapMInputBaseInner {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding-left: 0.85rem !important;
+  padding-right: 0.85rem !important;
+  height: 100% !important;
+}
+.chatInputField .sapMInputBaseInner:focus,
+.chatInputField .sapMInputBaseInner:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* P8-2 v19: 전송 버튼 — 보라 원형. outer(.sapMBtn)와 inner(.sapMBtnInner)
+   분리 처리 — outer에만 size/배경/그림자 + inner는 100% 차지 (겹침 방지) */
+.chatSendBtn {
+  flex: 0 0 38px !important;          /* flex item 자리 명시 (Input과 겹침 방지) */
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #7B4FE0, #5E39C0) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(123, 79, 224, 0.25);
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.chatSendBtn .sapMBtnInner {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.chatSendBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(123, 79, 224, 0.4);
+  background: linear-gradient(135deg, #8A5FF0, #6E49D0) !important;
+}
+.chatSendBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(123, 79, 224, 0.3);
+}
+.chatSendBtn .sapMBtnIcon {
+  color: #ffffff !important;
+  font-size: 1rem !important;
+}
+
+/* P8-2 v22: 메시지 List 클릭 highlight/focus outline 완전 차단 (강화)
+   v19 selector(.chatMessageItem .sapMLIB)만으론 부족 — CustomListItem wrapper
+   여러 단계 + List 자체 focus + sapMCustomLIContent 등 모두 selector 추가.
+   .chatDetailBtn은 별도 클래스라 영향 없음 (클릭 가능). */
+.chatMessageItem,
+.chatMessageItem *,
+.chatMessageItem .sapMLIB,
+.chatMessageItem .sapMCustomLI-Content,
+.chatMessageItem .sapMCustomLIContent,
+.chatMessageItem .chatMsgCol,
+.chatMessageItem .chatBubble {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+.chatMessageItem .sapMLIB,
+.chatMessageItem .sapMCustomLI-Content {
+  cursor: default !important;
+  user-select: text;     /* 메시지 텍스트는 복사 가능하게 */
+}
+.chatMessageItem .sapMLIB:hover,
+.chatMessageItem .sapMLIB:focus,
+.chatMessageItem .sapMLIB:focus-visible,
+.chatMessageItem .sapMLIB:active,
+.chatMessageItem .sapMLIB.sapMLIBSelected,
+.chatMessageItem .sapMLIB.sapMLIBHoverable:hover,
+.chatMessageItem .sapMLIB.sapMLIBActive,
+.chatMessageItem .sapMLIB.sapMLIBFocused,
+.chatMessageItem.sapMLIBHoverable:hover,
+.chatMessageItem.sapMLIBSelected,
+.chatMessageItem.sapMLIBActive {
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+/* List 자체 focus + 내부 ul focus 모두 차단 */
+.chatMessageList,
+.chatMessageList:focus,
+.chatMessageList:focus-visible,
+.chatMessageList .sapMListUl,
+.chatMessageList .sapMListUl:focus,
+.chatMessageList .sapMListUl:focus-visible,
+.chatMessageList .sapMListItems {
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* 사이드 패널 자체 focus outline 차단 (기존 left border-shadow는 유지) */
+.chatSidePanel:focus,
+.chatSidePanel:focus-visible,
+.chatSidePanel:focus-within {
+  outline: none !important;
+}
+/* 메시지 버블 안 HTML control 모두 outline 차단 */
+.chatBubble,
+.chatBubble:focus,
+.chatBubble:focus-visible,
+.chatBubble *:focus,
+.chatBubble *:focus-visible {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+
+/* ============================================================ */
+/* ===== Phase 6: Dashboard + Shell 컴팩트 (원본 톤 차용) ====== */
+/* ============================================================ */
+
+:root {
+  --pj-primary: #0070F2;
+  --pj-primary-light: #EBF3FE;
+  --pj-text: #1D2D3E;
+  --pj-text-2: #556B82;
+  --pj-text-3: #8396A8;
+  --pj-border: #E5E8ED;
+  --pj-border-light: #EEF1F5;
+  --pj-bg: #F5F6FA;
+  --pj-success: #188038;
+  --pj-success-light: #E6F4EA;
+  --pj-warning: #E37400;
+  --pj-warning-light: #FEF3E0;
+  --pj-danger: #D93025;
+  --pj-danger-light: #FCE8E6;
+  --pj-info: #1A73E8;
+  --pj-info-light: #E8F0FE;
+}
+
+/* === Shell ToolHeader 상단 메뉴 — SAP 표준 IconTabHeader (sap.m) ===
+   IconTabHeader는 sap_horizon 테마와 native 호환:
+   - 평소: 진한 회색 (--sapTabContainer_TextColor)
+   - hover: 약간 진한 회색
+   - selected: 파란색 + 하단 underline
+   별도 cascade 강제 불필요. 미세 조정만. */
+/* P8-2 v23: flex-basis auto → 0 변경.
+   auto일 때 IconTabHeader가 자기 콘텐츠 폭을 기준으로 시작 + 옆 ToolbarSpacer
+   (.sapMTBSpacerFlex flex:1)와 grow 분배 → 가용 공간 부족 판단 → "+N" overflow.
+   basis:0으로 두면 부모의 남은 공간 전체를 정확히 받아서 메뉴가 다 표시됨. */
+.topTabHeader {
+  flex: 1 1 0 !important;
+  min-width: 0;
+  margin-right: 0.5rem;
+}
+.topTabHeader .sapMITHTabsContainer {
+  background: transparent !important;
+  border-bottom: none !important;
+}
+
+/* === ToolHeader 좌측 로고 박스 (App.view 안 + img/logo.png) === */
+.topLogoBox {
+  padding: 0 0.4rem 0 0.5rem;
+  margin-right: 0.25rem;
+  height: 100%;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+  user-select: none;
+  cursor: pointer !important;
+}
+/* 자식 요소(이미지, Text, VBox 등) 모두 손가락 커서 강제 — 박스 빈 영역에서만
+   pointer가 보이고 자식 위에선 default가 되는 cursor 상속 끊김 문제 해결 */
+.topLogoBox *,
+.topLogoBox .sapMText,
+.topLogoBox .sapMImg,
+.topLogoBox .sapMVBox,
+.topLogoBox .sapMHBox {
+  cursor: pointer !important;
+}
+.topLogoBox:hover {
+  background: rgba(0,112,242,0.05);
+}
+.topLogoImg {
+  border-radius: 6px;
+  margin-right: 0.55rem;
+  flex-shrink: 0;
+}
+.topLogoText {
+  line-height: 1.15;
+  justify-content: center;
+}
+.topLogoMain.sapMText {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+  letter-spacing: -0.01em;
+}
+.topLogoSub.sapMText {
+  font-size: 0.6rem !important;
+  font-weight: 500 !important;
+  color: var(--pj-text-3) !important;
+  letter-spacing: 0.02em;
+}
+
+/* === Dashboard 컴팩트 === */
+.dashboardPage,
+.dashboardPage .sapMPageEnableScrolling { background: var(--pj-bg) !important; }
+.dashScroll { background: var(--pj-bg); }
+.dashboardContent {
+  padding: 1rem 1.25rem 1.5rem 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.dashHeader {
+  margin-bottom: 0.75rem;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+.dashTitleMain.sapMTitle {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+}
+.dashSubtitle.sapMText {
+  font-size: 0.78rem !important;
+  color: var(--pj-text-3) !important;
+}
+
+/* KPI Grid */
+.kpiGrid { margin-bottom: 0.85rem; }
+.kpiCardCompact {
+  background: #fff;
+  border: 1px solid var(--pj-border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  box-shadow: 0 1px 4px rgba(29,45,62,0.06);
+  align-items: center;
+  min-height: 70px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.kpiCardCompact:hover {
+  box-shadow: 0 4px 16px rgba(29,45,62,0.08);
+  border-color: var(--pj-primary);
+  transform: translateY(-1px);
+}
+.kpiIconWrap {
+  width: 42px; height: 42px; min-width: 42px;
+  border-radius: 10px;
+  margin-right: 0.85rem;
+  flex-shrink: 0;
+}
+.kpiIconInfo    { background: var(--pj-info-light) !important;    color: var(--pj-info)    !important; }
+.kpiIconSuccess { background: var(--pj-success-light) !important; color: var(--pj-success) !important; }
+.kpiIconDanger  { background: var(--pj-danger-light) !important;  color: var(--pj-danger)  !important; }
+.kpiIconWarning { background: var(--pj-warning-light) !important; color: var(--pj-warning) !important; }
+.kpiIconWrap .sapUiIcon { color: inherit !important; font-size: 1.4rem !important; }
+
+.kpiBody { gap: 2px; }
+.kpiBody .kpiValue.sapMText {
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  color: var(--pj-text) !important;
+}
+.kpiBody .kpiLabel.sapMText {
+  font-size: 0.7rem !important;
+  font-weight: 500 !important;
+  color: var(--pj-text-3) !important;
+}
+.kpiBody .kpiChange.sapMText {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+}
+.kpiBody .kpiChangeUp.sapMText  { color: var(--pj-success) !important; }
+.kpiBody .kpiChangeDown.sapMText { color: var(--pj-danger) !important; }
+.kpiBody .kpiSublabel.sapMText {
+  font-size: 0.62rem !important;
+  color: var(--pj-text-3) !important;
+}
+
+/* ========== AI 인사이트 가로 스크롤 ==========
+   원본 디자인 톤: 카드 280~340px / 좌측 4px 컬러 보더(severity별) /
+   상단 작은 badge / 제목 / 설명 / metric 2개 / 하단 인라인 화살표 링크 */
+/* P8-2 v23: 좌우 padding — 측정 기준 정렬 (AI 인사이트 카드 ← KPI 카드).
+   getBoundingClientRect 측정: KPI=308px / AI=305.59px → AI가 2.41px 좌측 튀어나옴.
+   기존 padding 0.85rem(13.6px)에 추가 ~2.4px 보정 → 총 1rem(16px)로 설정.
+   1rem = 16px이라 떨어지는 값으로 깔끔, 측정 차이 2.41px도 cover. */
+.aiInsightsSection {
+  margin-bottom: 0.85rem;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+.aiInsightsHeader {
+  margin-bottom: 0.5rem;
+  gap: 0.4rem;
+}
+.aiInsightsHeaderIcon.sapUiIcon {
+  color: var(--pj-warning) !important;
+}
+.sectionTitleSmall.sapMText {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+  display: block;
+}
+
+/* ScrollContainer 내부 wrap 보정 */
+.aiInsightsScroll {
+  padding-bottom: 0.4rem;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+.aiInsightsScroll > .sapMScrollContScroll {
+  display: block !important;
+  width: max-content !important;
+}
+
+.aiInsightsRow {
+  gap: 0.6rem;
+  flex-wrap: nowrap !important;
+  width: max-content !important;
+}
+/* sap.m HBox 자식 wrapper(.sapMFlexItem)에 강제 width 부여
+   — 이것이 적용되지 않으면 카드가 풀폭으로 한 줄씩 깔리는 증상의 원인 */
+.aiInsightsRow > .sapMFlexItem {
+  flex: 0 0 auto !important;
+  width: 300px !important;
+  max-width: 300px !important;
+}
+
+.aiInsightCard {
+  width: 300px !important;
+  background: #ffffff;
+  border: 1px solid var(--pj-border);
+  border-left: 4px solid var(--pj-text-3);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  box-shadow: 0 1px 4px rgba(29,45,62,0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-sizing: border-box;
+}
+.aiInsightCard:hover {
+  box-shadow: 0 4px 16px rgba(29,45,62,0.10);
+  transform: translateY(-1px);
+}
+.aiInsightCard.severityHIGH   { border-left-color: var(--pj-danger)  !important; }
+.aiInsightCard.severityMEDIUM { border-left-color: var(--pj-warning) !important; }
+.aiInsightCard.severityLOW    { border-left-color: var(--pj-success) !important; }
+
+/* badge */
+.insightBadge.sapMText {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.6rem !important;
+  font-weight: 700 !important;
+  padding: 0.15rem 0.5rem !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+  background: #eef1f5 !important;
+  color: var(--pj-text-2) !important;
+}
+.insightBadge.severityHIGH   { background: var(--pj-danger-light)  !important; color: var(--pj-danger)  !important; }
+.insightBadge.severityMEDIUM { background: var(--pj-warning-light) !important; color: var(--pj-warning) !important; }
+.insightBadge.severityLOW    { background: var(--pj-success-light) !important; color: var(--pj-success) !important; }
+
+/* 제목 / 설명 / metric / link */
+.insightTitle.sapMText {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+  line-height: 1.3 !important;
+  margin: 0.1rem 0 0.3rem 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.insightDesc.sapMText {
+  font-size: 0.7rem !important;
+  color: var(--pj-text-2) !important;
+  line-height: 1.4 !important;
+  margin-bottom: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.insightMetrics {
+  gap: 1.2rem !important;
+  margin-bottom: 0.45rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--pj-bg);
+  border-radius: 6px;
+}
+.insightMetric { gap: 1px; }
+.insightMetricLabel.sapMText {
+  font-size: 0.58rem !important;
+  font-weight: 600 !important;
+  color: var(--pj-text-3) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.insightMetricValue.sapMText {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+}
+.insightAction.sapMLnk,
+.insightAction .sapMLnkText {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-primary) !important;
+  text-decoration: none !important;
+}
+.insightAction.sapMLnk:hover,
+.insightAction.sapMLnk:hover .sapMLnkText {
+  text-decoration: underline !important;
+}
+
+/* Chart card 공통 (트렌드/Health/Rec/Anom) — KPI 카드와 동일 정렬 */
+.dashStrip { margin-bottom: 0.85rem; }
+.chartCard {
+  background: #fff;
+  border: 1px solid var(--pj-border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 4px rgba(29,45,62,0.06);
+  margin: 0;   /* KPI 카드와 좌우 정렬 일치 — l:Grid hSpacing이 gutter 처리 */
+}
+.chartTitle.sapMText {
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+/* Store Health Grid (점포 카드) — 가변 폭으로 컨테이너에 맞춰 자동 신축
+   고정 88px일 때 3개만 한 줄에 들어가고 우측에 여백이 남는 문제 해결.
+   flex 1 1 80px + min/max로 컨테이너 width에 맞춰 한 줄에 가능한 많이 배치. */
+.storeHealthGrid {
+  gap: 0.4rem;
+  padding: 0.2rem;
+  flex-wrap: wrap !important;
+}
+.storeHealthGrid > .sapMVBox,
+.storeHealthGrid > [class*="storeHealthItem"] {
+  flex: 1 1 80px !important;       /* 기본 80px, 남는 공간을 자동 분배 */
+  min-width: 78px !important;
+  max-width: 110px !important;     /* 너무 커지지 않게 상한 */
+  min-height: 78px;
+  text-align: center;
+  padding: 0.4rem 0.3rem;
+  border-radius: 8px;
+  border: 1px solid var(--pj-border-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+}
+.storeHealthGrid > [class*="storeHealthItem"]:hover { transform: scale(1.03); box-shadow: 0 1px 4px rgba(29,45,62,0.08); }
+.storeHealthGrid > [class*="shStatusGREEN"]  { background: #E8F5E9 !important; }
+.storeHealthGrid > [class*="shStatusYELLOW"] { background: #FFF8E1 !important; }
+.storeHealthGrid > [class*="shStatusRED"]    { background: #FFEBEE !important; }
+.storeHealthGrid .shIcon.sapMText  { font-size: 1.1rem !important; }
+.storeHealthGrid .shScore.sapMText { font-size: 0.85rem !important; font-weight: 700 !important; color: var(--pj-text) !important; }
+.storeHealthGrid .shName.sapMText  { font-size: 0.65rem !important; font-weight: 600 !important; color: var(--pj-text-2) !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+.storeHealthGrid .shSub.sapMText   { font-size: 0.55rem !important; color: var(--pj-text-3) !important; }
+
+/* 발주 추천 List + 이상 탐지 List (Dashboard) — 적절한 컴팩트 행 ===
+   행 height 목표: 약 44~48px (기본 52px보다 약간 작게).
+   직전 ~30px은 너무 답답해 보였음 → padding/line-height 적절히 키움. */
+.recList,
+.anomList {
+  border: none !important;
+}
+.recList .sapMLIB,
+.anomList .sapMLIB {
+  padding: 0.45rem 0.5rem !important;     /* 위/아래 여백 적절히 */
+  min-height: auto !important;
+}
+/* CustomListItem inner content wrapper padding 0 (List padding이 이미 처리) */
+.recList .sapMLIBContent,
+.recList .sapMCustomLIContent,
+.recList .sapMCustomLI-Content,
+.anomList .sapMLIBContent,
+.anomList .sapMCustomLIContent,
+.anomList .sapMCustomLI-Content {
+  padding: 0 !important;
+  min-height: auto !important;
+}
+.recRow,
+.anomRow {
+  gap: 0.55rem;
+  padding: 0 !important;
+  min-height: auto !important;
+}
+.recRank.sapMText {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--pj-text-3);
+  color: #fff !important;
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+}
+.recRank.HIGH    { background: var(--pj-danger) !important; }
+.recRank.MEDIUM  { background: var(--pj-warning) !important; }
+.recRank.LOW     { background: var(--pj-success) !important; }
+.recItemTitle.sapMText {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+  line-height: 1.35 !important;
+}
+.recItemSub.sapMText {
+  font-size: 0.66rem !important;
+  color: var(--pj-text-3) !important;
+  line-height: 1.35 !important;
+}
+.recQty.sapMText {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-primary) !important;
+  line-height: 1.1 !important;
+}
+/* === 발주 버튼 (36px → 26px) — 너무 작지 않게 적절한 사이즈 === */
+/* margin-left로 +수량(.recQty)과 버튼 사이 간격 확보 */
+.recAction.sapMBtn,
+.recAction {
+  min-width: 40px !important;
+  width: auto !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  border-radius: 4px !important;
+  margin: 0 0 0 0.6rem !important;
+}
+.recAction .sapMBtnInner {
+  min-width: 40px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 0 0.7rem !important;
+  border-radius: 4px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.recAction .sapMBtnContent {
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+}
+
+.anomIcon.sapMText      { font-size: 1.05rem !important; line-height: 1 !important; }
+.anomItemTitle.sapMText {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+  line-height: 1.35 !important;
+}
+.anomItemSub.sapMText {
+  font-size: 0.66rem !important;
+  color: var(--pj-text-3) !important;
+  line-height: 1.35 !important;
+}
+.anomBadge.sapMText {
+  font-size: 0.6rem !important;
+  font-weight: 700 !important;
+  padding: 0.18rem 0.55rem !important;
+  border-radius: 4px !important;
+  text-transform: uppercase;
+}
+/* SPIKE = 급등(주의/위험), DROP = 급감(에러) — 원본과 동일 색상 의미 */
+.anomBadge.SPIKE { background: #FEF3E0 !important; color: #E37400 !important; }
+.anomBadge.DROP  { background: #FFEBEE !important; color: #C62828 !important; }
+
+/* 매출 트렌드 요약 */
+.forecastSummary.sapMText {
+  display: inline-block;
+  padding: 0.4rem 0.7rem;
+  background: #F8F9FB;
+  border-left: 3px solid #7B2FF2;
+  border-radius: 6px;
+  font-size: 0.72rem !important;
+  color: var(--pj-text) !important;
+  font-weight: 600 !important;
+  margin-bottom: 0.5rem;
+}
+
+/* l:Grid 자식 padding 약간 줄이기 */
+.kpiGrid > .sapUiRespGridSpan,
+.dashStrip > .sapUiRespGridSpan {
+  padding: 0 0.35rem !important;
+}
+
+/* ============================================================ */
+/* === 공급망 네트워크 (STRIP 5) — vis-network 컨테이너 ====== */
+/* ============================================================ */
+/* STRIP 5도 view에서 <l:Grid class="dashStrip">로 감쌌으므로 좌우 정렬은
+   wrapper(.sapUiRespGridSpan padding:0 0.35rem)가 자동 처리.
+   → 별도 좌우 margin 불필요, bottom 간격만 유지. */
+.scCard {
+  margin-bottom: 0;   /* dashStrip이 margin-bottom:0.85rem 부여 */
+}
+.scTitleRow {
+  width: 100%;
+  margin-bottom: 0.4rem;
+}
+.scRiskCheckbox .sapMCbLabel {
+  font-size: 0.7rem !important;
+  font-weight: 500 !important;
+  color: var(--pj-text-2) !important;
+}
+.scLegend {
+  gap: 0.8rem;
+  padding: 0.3rem 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.65rem;
+}
+.scLegend > .sapMFlexItem {
+  flex: 0 0 auto !important;
+}
+.scLegendItem {
+  gap: 0.3rem;
+}
+.scLegendItem .sapMText {
+  font-size: 0.65rem !important;
+  color: var(--pj-text-3) !important;
+}
+.scLegendDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}
+#supplyChainGraph {
+  width: 100%;
+  height: 300px;
+  border: 1px solid var(--pj-border);
+  border-radius: 8px;
+  background: #FAFBFC;
+}
+
+/* ============================================================ */
+/* === 바로가기 섹션 ========================================= */
+/* ============================================================ */
+.shortcutSection {
+  padding: 0 1rem;
+  margin-top: 0.4rem;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+.shortcutSectionTitle.sapMText {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: var(--pj-text) !important;
+  display: block;
+  margin-bottom: 0.6rem;
+}
+.shortcutRow {
+  gap: 0.6rem;
+  flex-wrap: wrap !important;
+  width: 100%;
+}
+.shortcutRow > .sapMFlexItem {
+  flex: 0 0 auto !important;
+}
+.shortcutCard {
+  background: #fff;
+  border: 1px solid var(--pj-border);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  gap: 0.55rem;
+  cursor: pointer !important;
+  transition: all 0.2s ease;
+  min-width: 180px;
+  align-items: center;
+}
+.shortcutCard *,
+.shortcutCard .sapMText {
+  cursor: pointer !important;
+}
+.shortcutCard:hover {
+  background: var(--pj-primary-light);
+  border-color: var(--pj-primary);
+}
+.shortcutCard:hover .shortcutTitle.sapMText {
+  color: var(--pj-primary) !important;
+}
+.shortcutIcon.sapMText {
+  font-size: 1.05rem !important;
+  margin-right: 0.4rem;
+}
+.shortcutTitle.sapMText {
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  color: var(--pj-text) !important;
+}
+
+/* ============================================================ */
+/* === 사이드바 하단 즐겨찾기 (S/4HANA · Help · Support) ==== */
+/* ============================================================ */
+/* sap.tnt.SideNavigation의 fixedItem 영역은 자체 NavigationList를
+   하단에 고정 배치. SAP 표준 fixedItem이 자동 부여하는 상단 구분선이
+   불필요하게 두꺼워 보이는 문제가 있어 모두 제거. */
+.sideNavQuicklinks {
+  border-top: none !important;
+  padding-top: 0 !important;
+}
+/* sap.tnt 1.120 기준 fixedItem wrapper에 자동 추가되는 모든 border-top 차단 */
+.sapTntToolPage .sapTntSideNavigation .sapTntNavLIPopup,
+.sapTntToolPage .sapTntSideNavigation .sapTntNavLIFixed,
+.sapTntToolPage .sapTntSideNavigation .sapTntNavLI:last-child,
+.sapTntToolPage .sapTntSideNavigation > .sapTntNavLIFlexible,
+.sapTntToolPage .sapTntSideNavigation .sapTntNLFlexible,
+.sapTntToolPage .sapTntSideNavigation .sapTntNavLIGroupBorder {
+  border-top: none !important;
+  border-bottom: none !important;
+}
+.sideNavQuicklinks .sapTntNavLIItemText {
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: var(--pj-text-2) !important;
+}
+.sideNavQuicklinks .sapTntNavLIItem .sapUiIcon {
+  font-size: 0.95rem !important;
+}
+.sideNavQuicklinks .sapTntNavLIItem:hover .sapTntNavLIItemText,
+.sideNavQuicklinks .sapTntNavLIItem:hover .sapUiIcon {
+  color: var(--pj-primary) !important;
+}
+
+/* ============================================================ */
+/* ===== P8-2 v23: Auto-hide 스크롤바 (selector 제한) ==========
+   평소: 완전 숨김 (width/height 0px)
+   영역 hover: 8px 폭 + 반투명 thumb 등장
+   thumb hover: 더 진하게 → 드래그 가능 시각 단서
+
+   적용 대상 (SAP 표준 dialog/popover에 영향 안 가도록 selector 제한):
+   - .dashScroll          : Dashboard 페이지 전체 세로 스크롤
+   - .aiInsightsScroll    : AI 인사이트 가로 스크롤
+   - .chartCard           : 점포 카드 그리드 등 차트 내부 ScrollContainer
+   - .chatScroll          : Chat 메시지 스크롤
+   - .chatSidePanel       : Chat 패널 wrapper (보강)
+   - .sapMPageScroll      : sap.m.Page 내부 스크롤 (5개 AI 결과 view 포함)
+   ============================================================ */
+
+/* Firefox — hover 토글 불가, 항상 transparent thumb이 가장 가까운 효과 */
+.dashScroll .sapMScrollContScroll,
+.aiInsightsScroll .sapMScrollContScroll,
+.chartCard .sapMScrollContScroll,
+.chatScroll .sapMScrollContScroll,
+.chatSidePanel .sapMScrollContScroll,
+.sapMPageScroll,
+.dashboardPage .sapMPageEnableScrolling,
+.dashboardPage > section,
+.dashboardPage section.sapMPage {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s ease;
+}
+.dashScroll:hover .sapMScrollContScroll,
+.aiInsightsScroll:hover .sapMScrollContScroll,
+.chartCard:hover .sapMScrollContScroll,
+.chatScroll:hover .sapMScrollContScroll,
+.chatSidePanel:hover .sapMScrollContScroll,
+.sapMPage:hover .sapMPageScroll,
+.dashboardPage:hover .sapMPageEnableScrolling,
+.dashboardPage:hover > section,
+.dashboardPage:hover section.sapMPage {
+  scrollbar-color: rgba(29, 45, 62, 0.35) transparent;
+}
+
+/* WebKit (Chrome/Edge/Safari) — 평소 0px (완전 숨김) */
+.dashScroll .sapMScrollContScroll::-webkit-scrollbar,
+.aiInsightsScroll .sapMScrollContScroll::-webkit-scrollbar,
+.chartCard .sapMScrollContScroll::-webkit-scrollbar,
+.chatScroll .sapMScrollContScroll::-webkit-scrollbar,
+.chatSidePanel .sapMScrollContScroll::-webkit-scrollbar,
+.sapMPageScroll::-webkit-scrollbar,
+.dashboardPage .sapMPageEnableScrolling::-webkit-scrollbar,
+.dashboardPage > section::-webkit-scrollbar,
+.dashboardPage section.sapMPage::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+.dashScroll .sapMScrollContScroll::-webkit-scrollbar-track,
+.aiInsightsScroll .sapMScrollContScroll::-webkit-scrollbar-track,
+.chartCard .sapMScrollContScroll::-webkit-scrollbar-track,
+.chatScroll .sapMScrollContScroll::-webkit-scrollbar-track,
+.chatSidePanel .sapMScrollContScroll::-webkit-scrollbar-track,
+.sapMPageScroll::-webkit-scrollbar-track,
+.dashboardPage .sapMPageEnableScrolling::-webkit-scrollbar-track,
+.dashboardPage > section::-webkit-scrollbar-track,
+.dashboardPage section.sapMPage::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dashScroll .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.aiInsightsScroll .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.chartCard .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.chatScroll .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.chatSidePanel .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.sapMPageScroll::-webkit-scrollbar-thumb,
+.dashboardPage .sapMPageEnableScrolling::-webkit-scrollbar-thumb,
+.dashboardPage > section::-webkit-scrollbar-thumb,
+.dashboardPage section.sapMPage::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+/* hover 시 8px 폭 + 반투명 thumb 등장 */
+.dashScroll:hover .sapMScrollContScroll::-webkit-scrollbar,
+.aiInsightsScroll:hover .sapMScrollContScroll::-webkit-scrollbar,
+.chartCard:hover .sapMScrollContScroll::-webkit-scrollbar,
+.chatScroll:hover .sapMScrollContScroll::-webkit-scrollbar,
+.chatSidePanel:hover .sapMScrollContScroll::-webkit-scrollbar,
+.sapMPage:hover .sapMPageScroll::-webkit-scrollbar,
+.dashboardPage:hover .sapMPageEnableScrolling::-webkit-scrollbar,
+.dashboardPage:hover > section::-webkit-scrollbar,
+.dashboardPage:hover section.sapMPage::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.dashScroll:hover .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.aiInsightsScroll:hover .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.chartCard:hover .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.chatScroll:hover .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.chatSidePanel:hover .sapMScrollContScroll::-webkit-scrollbar-thumb,
+.sapMPage:hover .sapMPageScroll::-webkit-scrollbar-thumb,
+.dashboardPage:hover .sapMPageEnableScrolling::-webkit-scrollbar-thumb,
+.dashboardPage:hover > section::-webkit-scrollbar-thumb,
+.dashboardPage:hover section.sapMPage::-webkit-scrollbar-thumb {
+  background: rgba(29, 45, 62, 0.3);
+}
+
+/* thumb 자체 hover — 드래그 가능 시각 단서 */
+.dashScroll .sapMScrollContScroll::-webkit-scrollbar-thumb:hover,
+.aiInsightsScroll .sapMScrollContScroll::-webkit-scrollbar-thumb:hover,
+.chartCard .sapMScrollContScroll::-webkit-scrollbar-thumb:hover,
+.chatScroll .sapMScrollContScroll::-webkit-scrollbar-thumb:hover,
+.chatSidePanel .sapMScrollContScroll::-webkit-scrollbar-thumb:hover,
+.sapMPageScroll::-webkit-scrollbar-thumb:hover,
+.dashboardPage .sapMPageEnableScrolling::-webkit-scrollbar-thumb:hover,
+.dashboardPage > section::-webkit-scrollbar-thumb:hover,
+.dashboardPage section.sapMPage::-webkit-scrollbar-thumb:hover {
+  background: rgba(29, 45, 62, 0.5);
+}
+
+/* ============================================================ */
+/* ============================================================ */
+/* ===== P8-2 v23: AI 인사이트 카드 자동 selection/focus 차단 ===
+   페이지 로드 시 첫 focusable element(Link)가 highlight된 상태로
+   보이는 문제 우회. CSS로 outline/selection 차단 + controller에서
+   document.getSelection().removeAllRanges() 호출 (보강).
+   ============================================================ */
+.aiInsightCard,
+.aiInsightCard *,
+.insightAction,
+.insightAction *,
+.insightAction .sapMLnkText {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+.insightAction:focus,
+.insightAction:focus-visible,
+.insightAction.sapMLnkFocused,
+.insightAction:focus .sapMLnkText,
+.insightAction:focus-visible .sapMLnkText {
+  outline: none !important;
+  background: transparent !important;
+}
+/* 텍스트 selection 색상 차단 (페이지 로드 시 자동 select되는 케이스) */
+.insightAction::selection,
+.insightAction *::selection,
+.aiInsightCard::selection,
+.aiInsightCard *::selection {
+  background: transparent !important;
+  color: inherit !important;
+}
+

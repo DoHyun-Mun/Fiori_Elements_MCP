@@ -1,0 +1,166 @@
+<mvc:View
+    controllerName="storepjt.ui5.controller.Dashboard"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:custom="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
+    xmlns:viz="sap.viz.ui5.controls"
+    xmlns:vData="sap.viz.ui5.data"
+    xmlns:vFeed="sap.viz.ui5.controls.common.feeds"
+    height="100%">
+<Page showHeader="false" backgroundDesign="Solid" class="dashboardPage">
+<ScrollContainer height="100%" width="100%" horizontal="false" vertical="true" class="dashScroll">
+<VBox class="dashboardContent">
+
+<!-- Header -->
+<HBox alignItems="Center" justifyContent="SpaceBetween" class="dashHeader">
+    <HBox alignItems="Center">
+        <Title text="🤖 AI 점포 운영 대시보드" level="H2" class="dashTitleMain"/>
+        <Text text="{dashboard>/today}" class="dashSubtitle sapUiSmallMarginBegin"/>
+    </HBox>
+    <!-- <Button icon="sap-icon://refresh" text="새로고침" press=".onRefresh"/> -->
+</HBox>
+
+<!-- STRIP 1: KPI 4 컴팩트 카드 -->
+<l:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="0" class="kpiGrid">
+    <HBox class="kpiCardCompact">
+        <VBox class="kpiIconWrap kpiIconInfo" justifyContent="Center" alignItems="Center">
+            <core:Icon src="sap-icon://money-bills" size="1.4rem" xmlns:core="sap.ui.core"/>
+        </VBox>
+        <VBox class="kpiBody" justifyContent="Center">
+            <Text text="{dashboard>/kpi/revenueText}" class="kpiValue"/>
+            <Text text="최근 매출" class="kpiLabel"/>
+            <Text id="kpiRevChange" text="{dashboard>/kpi/revenueChangeText}" class="kpiChange"/>
+        </VBox>
+    </HBox>
+    <HBox class="kpiCardCompact">
+        <VBox class="kpiIconWrap kpiIconSuccess" justifyContent="Center" alignItems="Center">
+            <core:Icon src="sap-icon://shield" size="1.4rem" xmlns:core="sap.ui.core"/>
+        </VBox>
+        <VBox class="kpiBody" justifyContent="Center">
+            <Text text="{dashboard>/kpi/healthText}" class="kpiValue"/>
+            <Text text="재고 건전성" class="kpiLabel"/>
+            <Text id="kpiHealthChange" text="{dashboard>/kpi/healthChangeText}" class="kpiChange"/>
+        </VBox>
+    </HBox>
+    <HBox class="kpiCardCompact">
+        <VBox class="kpiIconWrap kpiIconDanger" justifyContent="Center" alignItems="Center">
+            <core:Icon src="sap-icon://alert" size="1.4rem" xmlns:core="sap.ui.core"/>
+        </VBox>
+        <VBox class="kpiBody" justifyContent="Center">
+            <Text text="{dashboard>/kpi/stockoutText}" class="kpiValue"/>
+            <Text text="결품 위험" class="kpiLabel"/>
+            <Text text="즉시 조치 →" class="kpiSublabel"/>
+        </VBox>
+    </HBox>
+    <HBox class="kpiCardCompact">
+        <VBox class="kpiIconWrap kpiIconWarning" justifyContent="Center" alignItems="Center">
+            <core:Icon src="sap-icon://sales-order" size="1.4rem" xmlns:core="sap.ui.core"/>
+        </VBox>
+        <VBox class="kpiBody" justifyContent="Center">
+            <Text text="{dashboard>/kpi/pendingText}" class="kpiValue"/>
+            <Text text="발주 대기" class="kpiLabel"/>
+            <Text text="승인 필요 →" class="kpiSublabel"/>
+        </VBox>
+    </HBox>
+</l:Grid>
+
+<!-- STRIP 2: AI 인사이트 (가로 스크롤) -->
+<!-- 동적 styleClass(severityHIGH/MEDIUM/LOW)는 controller의 _insightCardFactory에서 addStyleClass 호출 -->
+<VBox class="aiInsightsSection">
+    <HBox alignItems="Center" class="aiInsightsHeader">
+        <core:Icon src="sap-icon://lightbulb" size="0.95rem" class="aiInsightsHeaderIcon" xmlns:core="sap.ui.core"/>
+        <Text text="오늘의 AI 인사이트" class="sectionTitleSmall"/>
+    </HBox>
+    <ScrollContainer horizontal="true" vertical="false" width="100%" class="aiInsightsScroll">
+        <HBox id="aiInsightsRow" class="aiInsightsRow"
+              items="{path:'dashboard>/insights', factory:'.insightCardFactory'}"/>
+    </ScrollContainer>
+</VBox>
+
+<!-- STRIP 3: 매출 트렌드 + 점포 Health -->
+<l:Grid defaultSpan="L6 M12 S12" hSpacing="1" vSpacing="0" class="dashStrip">
+    <VBox class="chartCard">
+        <Text text="📈 매출 트렌드 + AI 예측" class="chartTitle"/>
+        <Text text="{dashboard>/forecastSummary}" class="forecastSummary"/>
+        <viz:VizFrame id="vizSalesForecast" uiConfig="{applicationSet:'fiori'}" height="240px" width="100%" vizType="line">
+            <viz:dataset>
+                <vData:FlattenedDataset data="{dashboard>/forecast}">
+                    <vData:dimensions><vData:DimensionDefinition name="Date" value="{dashboard>label}"/></vData:dimensions>
+                    <vData:measures>
+                        <vData:MeasureDefinition name="실적" value="{dashboard>actual}"/>
+                        <vData:MeasureDefinition name="AI 예측" value="{dashboard>forecast}"/>
+                    </vData:measures>
+                </vData:FlattenedDataset>
+            </viz:dataset>
+            <viz:feeds>
+                <vFeed:FeedItem uid="valueAxis" type="Measure" values="실적,AI 예측"/>
+                <vFeed:FeedItem uid="categoryAxis" type="Dimension" values="Date"/>
+            </viz:feeds>
+        </viz:VizFrame>
+    </VBox>
+    <VBox class="chartCard">
+        <Text text="🗺️ 점포별 재고 건전성" class="chartTitle"/>
+        <!-- P8-2 v23: 동적 className(shStatusGREEN/YELLOW/RED)을 위해 factory 사용 -->
+        <ScrollContainer height="280px" width="100%" vertical="true" horizontal="false">
+            <HBox wrap="Wrap" class="storeHealthGrid"
+                  items="{path:'dashboard>/stores', factory:'.storeHealthFactory'}"/>
+        </ScrollContainer>
+    </VBox>
+</l:Grid>
+
+<!-- STRIP 4: 발주 추천 + 이상 탐지
+     데이터 건수는 그대로 5건 유지하되, 두 카드의 List 영역 height를 280px로
+     고정 → 카드 height가 항상 동일. 콘텐츠가 넘치면 List 영역만 자체 세로 스크롤. -->
+<l:Grid defaultSpan="L6 M12 S12" hSpacing="1" vSpacing="0" class="dashStrip">
+    <VBox class="chartCard">
+        <Text text="🎯 AI 발주 추천 Top 5" class="chartTitle"/>
+        <!-- P8-2 v23: priority 별 동적 색상(.recRank.HIGH/MEDIUM/LOW) → factory -->
+        <ScrollContainer height="280px" width="100%" vertical="true" horizontal="false" class="recScroll">
+            <List items="{path:'dashboard>/orderRecs', factory:'.orderRecFactory'}"
+                  noDataText="추천 항목 없음" showSeparators="Inner" class="recList"/>
+        </ScrollContainer>
+    </VBox>
+    <VBox class="chartCard">
+        <Text text="🔍 이상 탐지 (오늘)" class="chartTitle"/>
+        <!-- P8-2 v23: anomalyType 별 동적 뱃지 색상(.anomBadge.SPIKE/DROP) → factory -->
+        <ScrollContainer height="280px" width="100%" vertical="true" horizontal="false" class="anomScroll">
+            <List items="{path:'dashboard>/anomalies', factory:'.anomalyFactory'}"
+                  noDataText="이상 항목 없음" showSeparators="Inner" class="anomList"/>
+        </ScrollContainer>
+    </VBox>
+</l:Grid>
+
+<!-- STRIP 5: 공급망 네트워크 (vis-network)
+     STRIP 3/4와 동일한 좌우 정렬을 위해 <l:Grid>로 감쌈 — Grid 자식 wrapper
+     (.sapUiRespGridSpan)가 자동으로 padding:0 0.35rem를 부여 → 위/아래 카드와 폭 일치 -->
+<l:Grid defaultSpan="L12 M12 S12" hSpacing="1" vSpacing="0" class="dashStrip">
+    <VBox class="chartCard scCard">
+        <HBox alignItems="Center" class="scTitleRow">
+            <Text text="🔗 공급망 네트워크" class="chartTitle"/>
+            <ToolbarSpacer/>
+            <CheckBox id="scRiskOnlyCb" text="위험 경로만" selected="true" select=".onScRiskOnlyToggle" class="scRiskCheckbox"/>
+        </HBox>
+        <HBox class="scLegend" wrap="Wrap" alignItems="Center">
+            <HBox alignItems="Center" class="scLegendItem"><core:HTML content="&lt;span class='scLegendDot' style='background:#7C4DFF;'&gt;&lt;/span&gt;"/><Text text="공급업체"/></HBox>
+            <HBox alignItems="Center" class="scLegendItem"><core:HTML content="&lt;span class='scLegendDot' style='background:#43A047;'&gt;&lt;/span&gt;"/><Text text="정상"/></HBox>
+            <HBox alignItems="Center" class="scLegendItem"><core:HTML content="&lt;span class='scLegendDot' style='background:#FFC107;'&gt;&lt;/span&gt;"/><Text text="주의"/></HBox>
+            <HBox alignItems="Center" class="scLegendItem"><core:HTML content="&lt;span class='scLegendDot' style='background:#D93025;'&gt;&lt;/span&gt;"/><Text text="부족"/></HBox>
+            <HBox alignItems="Center" class="scLegendItem"><core:HTML content="&lt;span class='scLegendDot' style='background:#1976D2;'&gt;&lt;/span&gt;"/><Text text="점포"/></HBox>
+        </HBox>
+        <core:HTML id="supplyChainGraphHtml" content="&lt;div id='supplyChainGraph' style='width:100%;height:300px;border:1px solid #E5E8ED;border-radius:8px;background:#FAFBFC;'&gt;&lt;/div&gt;"/>
+    </VBox>
+</l:Grid>
+
+<!-- 바로가기 -->
+<VBox class="shortcutSection">
+    <Text text="⚡ 바로가기" class="shortcutSectionTitle"/>
+    <HBox wrap="Wrap" class="shortcutRow"
+          items="{path:'dashboard>/shortcuts', factory:'.shortcutCardFactory'}"/>
+</VBox>
+
+</VBox>
+</ScrollContainer>
+</Page>
+</mvc:View>

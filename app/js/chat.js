@@ -5,7 +5,7 @@ let chatHistory = [];
 
 // marked.js 동적 로드
 (function() { var s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js"; document.head.appendChild(s); })();
-let chatOpen = false;
+let chatOpen = true;
 let chatSending = false;
 
 function toggleChat() {

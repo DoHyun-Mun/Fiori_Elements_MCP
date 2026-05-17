@@ -233,20 +233,56 @@ async function loadPOOptions() {
     } catch(e) { console.warn("옵션 로드 실패:", e); }
 }
 
+// 단건 발주 생성 — bulkCreatePurchaseOrders 액션 1건 호출로 통합
+// (PurchaseOrders entity가 @odata.draft.enabled라서 직접 POST는 draft만 생성됨.
+//  bulk 액션을 사용하면 단일 트랜잭션에서 active entity로 즉시 INSERT됨)
 async function submitPO() {
     var storeId = document.getElementById("poStore").value;
     var productId = document.getElementById("poProduct").value;
     var quantity = parseInt(document.getElementById("poQuantity").value) || 10;
     var unitPrice = parseInt(document.getElementById("poUnitPrice").value) || 0;
     var resultDiv = document.getElementById("poResult");
-    resultDiv.innerHTML = "<span style='color:#556B82;'>⏳ 발주 생성 중...</span>";
+
+    if (!storeId || !productId) {
+        resultDiv.innerHTML = "<span style='color:#D93025;'>\uC810\uD3EC \uB610\uB294 \uC0C1\uD488\uC744 \uC120\uD0DD\uD574\uC8FC\uC138\uC694.</span>";
+        return;
+    }
+
+    resultDiv.innerHTML = "<span style='color:#556B82;'>\u23F3 \uBC1C\uC8FC \uC0DD\uC131 \uC911...</span>";
+
     try {
-        var tokenRes = await fetch("/inventory/PurchaseOrders", { method: "HEAD", headers: { "x-csrf-token": "fetch" } });
+        // CSRF 토큰을 service root에서 받기 (entity HEAD는 405 반환)
+        var tokenRes = await fetch("/inventory/", { method: "HEAD", headers: { "x-csrf-token": "fetch" } });
         var csrfToken = tokenRes.headers.get("x-csrf-token") || "";
-        var res = await fetch("/inventory/PurchaseOrders", { method: "POST", headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken }, body: JSON.stringify({ product_ID: productId, store_ID: storeId, quantity: quantity, unitPrice: unitPrice }) });
-        if (res.ok) { var po = await res.json(); resultDiv.innerHTML = "<span style='color:#188038;font-weight:600;'>✅ 발주 생성 완료! " + (po.poNumber||"") + " (수량: " + quantity + ")</span>"; }
-        else { var err = await res.text(); resultDiv.innerHTML = "<span style='color:#D93025;'>❌ 생성 실패: " + err.substring(0,80) + "</span>"; }
-    } catch(e) { resultDiv.innerHTML = "<span style='color:#D93025;'>❌ 오류: " + e.message + "</span>"; }
+
+        // bulkCreatePurchaseOrders 액션 호출 (단건도 items 배열에 1개)
+        var res = await fetch("/inventory/bulkCreatePurchaseOrders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
+            body: JSON.stringify({
+                items: [{ product_ID: productId, store_ID: storeId, quantity: quantity, unitPrice: unitPrice }]
+            })
+        });
+
+        if (!res.ok) {
+            var errText = "";
+            try { errText = (await res.json()).error?.message || res.statusText; } catch(e) { errText = res.statusText; }
+            resultDiv.innerHTML = "<span style='color:#D93025;'>\u274C \uC0DD\uC131 \uC2E4\uD328 (HTTP " + res.status + "): " + errText + "</span>";
+            return;
+        }
+
+        var data = await res.json();
+        var results = Array.isArray(data) ? data : (data.value || []);
+        var r = results[0];
+
+        if (r && r.success) {
+            resultDiv.innerHTML = "<span style='color:#188038;font-weight:600;'>\u2705 \uBC1C\uC8FC \uC0DD\uC131 \uC644\uB8CC! " + (r.poNumber || "") + " (\uC218\uB7C9: " + quantity + ")</span>";
+        } else {
+            resultDiv.innerHTML = "<span style='color:#D93025;'>\u274C \uC0DD\uC131 \uC2E4\uD328: " + (r && r.error ? r.error : '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958') + "</span>";
+        }
+    } catch(e) {
+        resultDiv.innerHTML = "<span style='color:#D93025;'>\u274C \uB124\uD2B8\uC6CC\uD06C \uC624\uB958: " + (e.message || e) + "</span>";
+    }
 }
 
 function viewInventory() {
