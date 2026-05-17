@@ -226,9 +226,9 @@ if [ "$DEPLOY_DB" = true ]; then
     echo -e "${YELLOW}[DB] HDI Deployer 빌드 & 실행...${NC}"
 
     echo -e "  📦 HDI Deployer 이미지 빌드 중..."
-    docker build -f Dockerfile.hdi-deployer -t ${DOCKER_REGISTRY}/${APP_NAME}-hdi-deployer:latest --platform linux/amd64 . -q
+    docker build -f Dockerfile.hdi-deployer -t ${DOCKER_REGISTRY}/${APP_NAME}-hdi-deployer:latest --platform linux/amd64 .
     echo -e "  🚀 Push 중..."
-    docker push ${DOCKER_REGISTRY}/${APP_NAME}-hdi-deployer:latest -q
+    docker push ${DOCKER_REGISTRY}/${APP_NAME}-hdi-deployer:latest
     echo -e "  ${GREEN}✅ HDI Deployer 이미지 빌드+Push 완료${NC}"
 
     echo -e "  ⏳ HDI Deployer Job 실행..."
@@ -250,19 +250,20 @@ fi
 if [ "$DEPLOY_APP" = true ]; then
     echo -e "${YELLOW}[APP] CAP Backend 빌드 & 배포...${NC}"
 
-    echo -e "  📦 이미지 빌드 중..."
-    docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-srv:latest --platform linux/amd64 . -q
+    echo -e "  📦 이미지 빌드 중... (linux/amd64, 진행 로그 표시)"
+    # -q 제거 → push/build 진행률 표시. -srv 접미사 제거 → k8s/deployment.yaml 의 image와 일치
+    docker build -t ${DOCKER_REGISTRY}/${APP_NAME}:latest --platform linux/amd64 .
     echo -e "  🚀 Push 중..."
-    docker push ${DOCKER_REGISTRY}/${APP_NAME}-srv:latest -q
+    docker push ${DOCKER_REGISTRY}/${APP_NAME}:latest
     echo -e "  ${GREEN}✅ CAP Backend 이미지 빌드+Push 완료${NC}"
 
     echo -e "  📋 Deployment 적용..."
     kubectl apply -f k8s/deployment.yaml
     kubectl apply -f k8s/service.yaml
-    kubectl rollout restart deployment/${APP_NAME}-srv -n ${NAMESPACE}
-    kubectl rollout status deployment/${APP_NAME}-srv -n ${NAMESPACE} --timeout=120s 2>/dev/null || {
+    kubectl rollout restart deployment/${APP_NAME} -n ${NAMESPACE}
+    kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=180s 2>/dev/null || {
         echo -e "  ${YELLOW}⚠️  Rollout 타임아웃. 상태 확인:${NC}"
-        kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME}-srv
+        kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME}
     }
     echo -e "  ${GREEN}✅ CAP Backend 배포 완료${NC}"
     echo ""
@@ -276,19 +277,20 @@ if [ "$DEPLOY_ROUTER" = true ]; then
     echo -e "${YELLOW}[ROUTER] Approuter 빌드 & 배포...${NC}"
 
     echo -e "  📦 이미지 빌드 중..."
-    docker build -f approuter/Dockerfile -t ${DOCKER_REGISTRY}/${APP_NAME}-approuter:latest --platform linux/amd64 ./approuter -q
+    docker build -f approuter/Dockerfile -t ${DOCKER_REGISTRY}/${APP_NAME}-approuter:latest --platform linux/amd64 ./approuter
     echo -e "  🚀 Push 중..."
-    docker push ${DOCKER_REGISTRY}/${APP_NAME}-approuter:latest -q
+    docker push ${DOCKER_REGISTRY}/${APP_NAME}-approuter:latest
     echo -e "  ${GREEN}✅ Approuter 이미지 빌드+Push 완료${NC}"
 
     echo -e "  📋 Deployment 적용..."
     kubectl apply -f k8s/approuter-xs-app-configmap.yaml
     kubectl apply -f k8s/approuter-deployment.yaml
     kubectl apply -f k8s/approuter-service.yaml
-    kubectl rollout restart deployment/${APP_NAME}-approuter -n ${NAMESPACE}
-    kubectl rollout status deployment/${APP_NAME}-approuter -n ${NAMESPACE} --timeout=120s 2>/dev/null || {
+    # k8s/approuter-deployment.yaml의 deployment 이름은 'approuter' (APP_NAME prefix 없음)
+    kubectl rollout restart deployment/approuter -n ${NAMESPACE}
+    kubectl rollout status deployment/approuter -n ${NAMESPACE} --timeout=180s 2>/dev/null || {
         echo -e "  ${YELLOW}⚠️  Rollout 타임아웃. 상태 확인:${NC}"
-        kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME}-approuter
+        kubectl get pods -n ${NAMESPACE} -l app=approuter
     }
     echo -e "  ${GREEN}✅ Approuter 배포 완료${NC}"
     echo ""
