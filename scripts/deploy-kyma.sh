@@ -210,11 +210,10 @@ if [ "$DEPLOY_ALL" = true ]; then
     done
     echo ""
 
-    # ─── Secrets & ConfigMap 배포 ───
-    echo -e "${YELLOW}[Step 3] Secrets & ConfigMap 배포...${NC}"
-    kubectl apply -f k8s/uaa-default-services-secret.yaml
+    # ─── ConfigMap 배포 ───
+    echo -e "${YELLOW}[Step 3] ConfigMap 배포...${NC}"
     kubectl apply -f k8s/approuter-xs-app-configmap.yaml
-    echo -e "  ${GREEN}✅ Secrets & ConfigMap 적용 완료${NC}"
+    echo -e "  ${GREEN}✅ ConfigMap 적용 완료${NC}"
     echo ""
 fi
 

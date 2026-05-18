@@ -1,0 +1,62 @@
+# ══════════════════════════════════════════════════════════════
+# gitleaks configuration for store-pjt
+# ──────────────────────────────────────────────────────────────
+# 기본 룰셋(extend.useDefault = true)을 그대로 쓰면서, 프로젝트 특성에
+# 맞는 false-positive만 allowlist로 제외합니다.
+#
+# 사용법:
+#   - 워킹 트리 스캔 :  gitleaks detect --source . --no-git -v
+#   - 스테이징 스캔  :  gitleaks protect --staged -v
+#   - git history    :  gitleaks detect --source . -v
+# ══════════════════════════════════════════════════════════════
+
+title = "store-pjt gitleaks config"
+
+[extend]
+useDefault = true
+
+# ──────────────────────────────────────────────────────────────
+# 커스텀 룰: SAP / k8s 환경 특유의 secret 패턴
+# ──────────────────────────────────────────────────────────────
+
+[[rules]]
+id = "sap-clientsecret"
+description = "SAP service key clientsecret (XSUAA/AI Core 등)"
+regex = '''(?i)["']?clientsecret["']?\s*[:=]\s*["'][^"'\s<{}\[\]]{16,}["']'''
+tags = ["sap", "oauth", "secret"]
+
+[[rules]]
+id = "k8s-secret-stringdata-password"
+description = "k8s Secret stringData password 필드에 평문 값 (들여쓰기 무관, 다양한 quote)"
+regex = '''(?im)^[\t ]*password[\t ]*:[\t ]*(?:["'][^"'<>{}\n]{4,}["']|[A-Za-z0-9!@#$%^&*+=._-]{6,})\s*$'''
+tags = ["k8s", "secret", "password"]
+path = '''k8s/.*\.ya?ml$'''
+
+[[rules]]
+id = "k8s-secret-aicore-service-key-json"
+description = "k8s Secret 안에 AI_API_URL/clientid/clientsecret 평문 JSON"
+regex = '''"clientsecret"\s*:\s*"[^"]{12,}"'''
+tags = ["sap", "aicore"]
+
+[allowlist]
+description = "Project-specific allowlist (예시 파일, 더미 placeholder 등)"
+
+# 1) placeholder / example 파일은 스캔 대상에서 제외
+paths = [
+  '''(.*)\.example\.yaml$''',
+  '''(.*)\.example\.json$''',
+  '''node_modules/.*''',
+  '''package-lock\.json$''',
+  '''dist/.*''',
+  '''gen/.*''',
+  '''app/.*/webapp/test/.*''',
+]
+
+# 2) placeholder 패턴 (e.g. <CLIENT_ID>, <PASSWORD>) 은 매칭에서 제외
+regexes = [
+  '''<[A-Z_][A-Z0-9_]*>''',                       # <PLACEHOLDER>
+  '''xxxx+''',                                    # xxxxxxxx 형태
+  '''<your[- ]?[a-z0-9_-]+>''',                   # <your-token>
+  '''YOUR_[A-Z0-9_]+''',                          # YOUR_TOKEN
+  '''ghcr\.io/dohyun-mun/store-pjt[a-z\-]*:latest''', # docker image tag
+]

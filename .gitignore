@@ -11,3 +11,8 @@ app/*/dist/
 # Kubernetes 민감 정보
 kubeconfig*.yaml
 k8s/ias-secret.yaml
+
+# k8s/ 안의 모든 *-secret.yaml 추적 금지 (자격증명/Service Key 보호)
+# 단, *-secret.example.yaml (placeholder 예시 파일) 은 추적 허용
+k8s/*-secret.yaml
+!k8s/*-secret.example.yaml

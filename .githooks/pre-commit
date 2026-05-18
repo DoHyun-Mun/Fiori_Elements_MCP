@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# ══════════════════════════════════════════════════════════════
+# Pre-commit hook: gitleaks 기반 secret 누출 차단
+# ──────────────────────────────────────────────────────────────
+# 활성화 (최초 1회 또는 clone 직후):
+#   git config core.hooksPath .githooks
+#
+# 임시 우회 (꼭 필요한 경우):
+#   git commit --no-verify
+# ══════════════════════════════════════════════════════════════
+
+set -e
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "⚠️  gitleaks가 설치되어 있지 않습니다. 설치 후 다시 시도하세요:"
+  echo "    brew install gitleaks"
+  echo "    (또는: https://github.com/gitleaks/gitleaks#installing)"
+  exit 1
+fi
+
+# 스테이징된 변경사항만 스캔 (빠르고 정확)
+gitleaks protect --staged --redact -v --config .gitleaks.toml
+STATUS=$?
+
+if [ $STATUS -ne 0 ]; then
+  echo ""
+  echo "❌ gitleaks 검사에서 잠재적 secret이 감지되어 commit이 차단되었습니다."
+  echo "   - 실제 secret이라면: 해당 값을 제거하고 .env / k8s secret으로 옮기세요."
+  echo "   - false positive라면: .gitleaks.toml 의 allowlist 에 추가하세요."
+  echo "   - 정말 우회가 필요하면(권장하지 않음): git commit --no-verify"
+  exit $STATUS
+fi
+
+exit 0

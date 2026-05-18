@@ -69,7 +69,6 @@ KUBECONFIG=kubeconfig-dev.yaml kubectl logs job/hdi-deployer -n store-pjt --tail
 
 #### 5. CAP Backend + Approuter + APIRule
 ```bash
-kubectl apply -f k8s/uaa-default-services-secret.yaml
 kubectl apply -f k8s/approuter-xs-app-configmap.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
